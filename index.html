@@ -16,6 +16,11 @@
         .gradient-bg {
             background-image: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
         }
+        /* Estilo para pre-formato en los métodos de pago */
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
     </style>
 </head>
 <body class="min-h-screen antialiased">
@@ -60,7 +65,7 @@
                     <textarea id="receipt-note" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150" placeholder="Escribe aquí cualquier detalle o referencia..."></textarea>
                 </div>
 
-                <button id="confirm-receipt-btn" class="w-full gradient-bg text-white py-3 px-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition duration-300 ease-in-out disabled:opacity-50">
+                <button id="confirm-receipt-btn" onclick="handleConfirmReceipt()" class="w-full gradient-bg text-white py-3 px-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition duration-300 ease-in-out disabled:opacity-50">
                     Confirmar Comprobante
                 </button>
                 <button onclick="closeModal('receipt-modal')" class="mt-2 w-full text-gray-600 bg-gray-100 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition duration-150">
@@ -90,6 +95,9 @@
         // Configuración de Log de Firestore (opcional, útil para debugging)
         setLogLevel('debug');
 
+        // --- CONFIGURACIÓN DE PLATAFORMA ---
+        const IMGBB_API_KEY = "4612c081c225353eo3fb5d5f93d83971"; // API Key proporcionada por el usuario para ImgBB
+        
         // --- VARIABLES GLOBALES DE FIREBASE (MANDATORIAS) ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
@@ -99,13 +107,64 @@
         let userId = null;
         let isAuthReady = false;
 
-        // --- MOCK DATA PARA PAÍSES Y TASAS ---
+        // --- MOCK DATA PARA PAÍSES Y TASAS (LISTA RESTAURADA) ---
         const COUNTRIES = [
-            { code: 'BO', name: 'BOLIVIA', flag: '🇧🇴', rate: 12.00, currency: 'BOB', methods: 'Cuenta Banco Unión: 123456789\nTigo Money: 67890123\nQR Pago Fácil: Escanea el QR adjunto' },
-            { code: 'AR', name: 'ARGENTINA', flag: '🇦🇷', rate: 1000.00, currency: 'ARS', methods: 'Mercado Pago Alias: MI.ALIAS.MP\nCBU: 987654321' },
-            { code: 'CL', name: 'CHILE', flag: '🇨🇱', rate: 950.00, currency: 'CLP', methods: 'Transferencia Bancaria (Banco Estado): Rut 11.222.333-4' },
-            { code: 'CO', name: 'COLOMBIA', flag: '🇨🇴', rate: 4000.00, currency: 'COP', methods: 'Nequi: 3001234567\nDaviPlata: 3109876543' },
-            { code: 'PE', name: 'PERÚ', flag: '🇵🇪', rate: 3.75, currency: 'PEN', methods: 'Yape: +51 987654321\nBCP: Cta. Ahorros 191-0000000-0-00' },
+            { 
+                code: 'BO', 
+                name: 'BOLIVIA', 
+                flag: '🇧🇴', 
+                rate: 12.00, 
+                currency: 'BOB', 
+                methods: 'Cuenta Banco Unión: 123456789\nTigo Money: 67890123\nQR Pago Fácil: Escanea el QR adjunto' 
+            },
+            { 
+                code: 'AR', 
+                name: 'ARGENTINA', 
+                flag: '🇦🇷', 
+                rate: 1000.00, 
+                currency: 'ARS', 
+                methods: 'Mercado Pago Alias: MI.ALIAS.MP\nCBU: 987654321' 
+            },
+            { 
+                code: 'CL', 
+                name: 'CHILE', 
+                flag: '🇨🇱', 
+                rate: 950.00, 
+                currency: 'CLP', 
+                methods: 'Transferencia Bancaria (Banco Estado): Rut 11.222.333-4' 
+            },
+            { 
+                code: 'CO', 
+                name: 'COLOMBIA', 
+                flag: '🇨🇴', 
+                rate: 4000.00, 
+                currency: 'COP', 
+                methods: 'Nequi: 3001234567\nDaviPlata: 3109876543' 
+            },
+            { 
+                code: 'PE', 
+                name: 'PERÚ', 
+                flag: '🇵🇪', 
+                rate: 3.75, 
+                currency: 'PEN', 
+                methods: 'Yape: +51 987654321\nBCP: Cta. Ahorros 191-0000000-0-00' 
+            },
+            { 
+                code: 'MX', 
+                name: 'MÉXICO', 
+                flag: '🇲🇽', 
+                rate: 18.50, 
+                currency: 'MXN', 
+                methods: 'Transferencia SPEI: CLABE 000123456789012345\nOxxo Pay: Referencia 999888777666' 
+            },
+            { 
+                code: 'EC', 
+                name: 'ECUADOR', 
+                flag: '🇪🇨', 
+                rate: 1.00, 
+                currency: 'USD', 
+                methods: 'Banco Pichincha: Cta. de Ahorros 543210987\nPayPhone: 0991122334' 
+            }
         ];
         const MIN_USD_AMOUNT = 3;
 
@@ -149,26 +208,24 @@
         };
 
         /** Copia texto al portapapeles. */
-        const copyToClipboard = (text) => {
+        window.copyToClipboard = (text) => {
             try {
-                // Intenta usar el método moderno
-                if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(text);
-                    showMessage('¡Detalles de pago copiados!');
-                } else {
-                    // Fallback para entornos no seguros (iframe)
-                    const textarea = document.createElement('textarea');
-                    textarea.value = text;
-                    textarea.style.position = 'fixed'; // Evita que se desplacen al copiar
-                    document.body.appendChild(textarea);
-                    textarea.focus();
-                    textarea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textarea);
-                    showMessage('¡Detalles de pago copiados! (Método fallback)');
-                }
+                // Fallback para entornos no seguros (iframe)
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed'; 
+                textarea.style.top = '0';
+                textarea.style.left = '0';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showMessage('¡Detalles de pago copiados!');
             } catch (err) {
-                showMessage('Error al copiar: ' + err);
+                console.error("Error al copiar", err);
+                showMessage('Error al copiar. Por favor, copie manualmente.');
             }
         };
 
@@ -193,7 +250,6 @@
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
-                    // Si no hay token personalizado, usa anónimo
                     await signInAnonymously(auth);
                 }
 
@@ -242,16 +298,18 @@
                 const newOrders = [];
                 snapshot.forEach((doc) => {
                     const orderData = doc.data();
+                    const countryInfo = COUNTRIES.find(c => c.code === orderData.countryCode);
                     newOrders.push({
                         id: doc.id,
+                        flag: countryInfo ? countryInfo.flag : '🌎',
                         ...orderData
                     });
                 });
-                // Ordenar por fecha de creación (asumiendo que tienen un campo 'createdAt')
+                // Ordenar por fecha de creación (de más reciente a más antiguo)
                 newOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                 appState.orders = newOrders;
                 render();
-                showMessage(`Historial actualizado con ${newOrders.length} pedidos.`);
+                // Omitir showMessage aquí para evitar spam en cada cambio de datos
             }, (error) => {
                 console.error("Error al escuchar los pedidos:", error);
                 showMessage("Error al cargar historial de pedidos.");
@@ -268,25 +326,25 @@
             const ordersRef = getOrdersCollectionRef();
             if (!ordersRef) return;
             
-            // Usar un ID basado en el timestamp o simplemente dejar que Firestore lo genere
-            const newOrderRef = doc(ordersRef); // Firestore genera un ID automático
+            const newOrderRef = doc(ordersRef); 
             const newOrderData = {
                 orderNumber: Math.floor(Math.random() * 1000000), // Número de pedido simple (aleatorio)
                 countryCode: country.code,
                 countryName: country.name,
-                amountUsd: amountUsd,
-                amountLocal: amountLocal,
+                amountUsd: parseFloat(amountUsd.toFixed(2)),
+                amountLocal: parseFloat(amountLocal.toFixed(2)),
                 currency: country.currency,
                 rate: country.rate,
                 status: 'Pendiente de Pago',
                 receiptImageUrl: null,
+                receiptNote: null,
                 createdAt: Date.now(),
                 paymentMethods: country.methods
             };
 
             try {
                 await setDoc(newOrderRef, newOrderData);
-                appState.paymentDetails = { id: newOrderRef.id, ...newOrderData };
+                appState.paymentDetails = { id: newOrderRef.id, ...newOrderData, flag: country.flag };
                 setView('recharge_payment_details');
                 showMessage(`¡Orden #${newOrderData.orderNumber} creada con éxito!`);
             } catch (e) {
@@ -295,35 +353,78 @@
             }
         };
 
+        /**
+         * Sube un archivo a ImgBB y retorna la URL.
+         * @param {File} file El archivo de imagen a subir.
+         * @returns {Promise<string>} URL de la imagen subida.
+         */
+        const uploadImageToImgBB = async (file) => {
+            if (!file) throw new Error("No se seleccionó ningún archivo.");
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const apiUrl = `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`;
+
+            // Implementación de Backoff para reintentos de API
+            const maxRetries = 3;
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error(`ImgBB API Error (Status ${response.status}):`, errorText);
+                        throw new Error(`Error en la API de ImgBB: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.success && result.data && result.data.url) {
+                        return result.data.url;
+                    } else {
+                        throw new Error("Respuesta de ImgBB exitosa, pero la URL de la imagen no se encontró.");
+                    }
+                } catch (error) {
+                    if (attempt < maxRetries - 1) {
+                        const delay = Math.pow(2, attempt) * 1000; // Retraso exponencial
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        // Reintentar
+                    } else {
+                        throw error; // Lanzar el error después del último intento
+                    }
+                }
+            }
+        };
+
+
         /** Actualiza una orden con la información del comprobante. */
-        const uploadReceipt = async (orderId, note, file) => {
+        const updateOrderWithReceipt = async (orderId, note, imageUrl) => {
              if (!db || !userId) {
                 showMessage("Error: Usuario no autenticado.");
                 return;
             }
 
-            // En un app real, aquí se subiría 'file' a Firebase Storage y se obtendría una URL
-            // Como no tenemos Storage, simularemos la URL con un string.
             const ordersRef = getOrdersCollectionRef();
             if (!ordersRef) return;
-
-            const receiptUrlSimulated = `simulated://receipt/${orderId}/${Date.now()}.jpg`;
 
             try {
                 const orderDocRef = doc(ordersRef, orderId);
                 await updateDoc(orderDocRef, {
                     status: 'Comprobante Subido',
-                    receiptImageUrl: receiptUrlSimulated,
+                    receiptImageUrl: imageUrl,
                     receiptNote: note,
                     uploadedAt: Date.now()
                 });
 
                 closeModal('receipt-modal');
-                showMessage(`Comprobante para Pedido #${orderId.substring(0, 4)}... subido.`);
+                showMessage(`Comprobante para Pedido subido. Pendiente de verificación.`);
                 setView('home'); // Volver a inicio
             } catch (e) {
-                console.error("Error al subir comprobante: ", e);
-                showMessage("Error al confirmar el comprobante.");
+                console.error("Error al actualizar la orden en Firestore: ", e);
+                showMessage("Error al confirmar el comprobante en la base de datos.");
             }
         };
 
@@ -331,7 +432,7 @@
         // --- MANEJO DE VISTAS (STATE MACHINE) ---
 
         /** Cambia la vista activa de la aplicación. */
-        const setView = (newView) => {
+        window.setView = (newView) => {
             appState.view = newView;
             render();
         };
@@ -339,8 +440,8 @@
         /** Lógica para iniciar el flujo de comprobante. */
         window.openReceiptUpload = (orderId) => {
             const order = appState.orders.find(o => o.id === orderId);
-            if (!order) {
-                showMessage('Error: Pedido no encontrado.');
+            if (!order || order.status === 'Comprobante Subido') {
+                showMessage('Este pedido ya tiene un comprobante subido.');
                 return;
             }
             appState.currentOrderToUpload = order;
@@ -368,8 +469,9 @@
             let amount = parseFloat(input.value);
             if (isNaN(amount) || amount < MIN_USD_AMOUNT) {
                 amount = MIN_USD_AMOUNT;
-                input.value = MIN_USD_AMOUNT;
             }
+            // Asegurar que el input refleje un valor válido inmediatamente
+            input.value = amount.toFixed(2);
             appState.amountUsd = amount;
             render(); // Re-renderizar para actualizar el monto local
         };
@@ -378,18 +480,18 @@
         window.handleCreateOrder = () => {
             const country = appState.selectedCountry;
             const amountUsd = appState.amountUsd;
-            const amountLocal = (amountUsd * country.rate).toFixed(2);
+            const amountLocal = amountUsd * country.rate;
             
             if (amountUsd < MIN_USD_AMOUNT) {
                 showMessage(`El monto mínimo es $${MIN_USD_AMOUNT} USD.`);
                 return;
             }
 
-            createRechargeOrder(country, amountUsd, parseFloat(amountLocal));
+            createRechargeOrder(country, amountUsd, amountLocal);
         };
 
         /** Maneja la confirmación de subida del comprobante. */
-        window.handleConfirmReceipt = () => {
+        window.handleConfirmReceipt = async () => {
             const order = appState.currentOrderToUpload;
             const fileInput = document.getElementById('receipt-file-input');
             const note = document.getElementById('receipt-note').value.trim();
@@ -400,20 +502,31 @@
                  return;
             }
             
-            // Simulación de validación de archivo
             if (!fileInput.files || fileInput.files.length === 0) {
                 showMessage('Por favor, seleccione una imagen para el comprobante.');
                 return;
             }
 
+            const file = fileInput.files[0];
             confirmBtn.disabled = true;
-            confirmBtn.textContent = 'Subiendo...';
+            confirmBtn.textContent = 'Subiendo Imagen...';
+            showMessage('Subiendo comprobante, por favor espere...');
 
-            uploadReceipt(order.id, note, fileInput.files[0])
-                .finally(() => {
-                    confirmBtn.disabled = false;
-                    confirmBtn.textContent = 'Confirmar Comprobante';
-                });
+            try {
+                // 1. Subir la imagen a ImgBB
+                const imageUrl = await uploadImageToImgBB(file);
+                
+                // 2. Actualizar el documento en Firestore con la URL
+                confirmBtn.textContent = 'Confirmando Pedido...';
+                await updateOrderWithReceipt(order.id, note, imageUrl);
+                
+            } catch (error) {
+                console.error("Fallo completo al subir comprobante:", error);
+                showMessage(`Fallo al subir comprobante: ${error.message || 'Error desconocido'}`);
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirmar Comprobante';
+            }
         };
         
         // Listener para actualizar el nombre del archivo en el modal
@@ -429,12 +542,8 @@
                     }
                 });
             }
-
-            const confirmBtn = document.getElementById('confirm-receipt-btn');
-            if(confirmBtn) {
-                confirmBtn.onclick = window.handleConfirmReceipt;
-            }
         });
+
 
         // --- FUNCIONES DE RENDERIZADO DE VISTAS ---
         
@@ -493,8 +602,8 @@
                             <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.657 0 3 .895 3 2s-1.343 2-3 2h-1v4m-2-4v4m-2-4h2m0 0a3 3 0 110-6 3 3 0 010 6z"></path></svg>
                             Recargar Saldo
                         </button>
-                        <!-- Botón Retirar Fondos -->
-                        <button class="bg-gray-200 text-gray-700 py-4 rounded-xl font-bold shadow-md hover:bg-gray-300 transform hover:-translate-y-0.5 transition duration-200 flex flex-col items-center">
+                        <!-- Botón Retirar Fondos (Desactivado por ahora) -->
+                        <button class="bg-gray-200 text-gray-500 py-4 rounded-xl font-bold shadow-md cursor-not-allowed opacity-70 flex flex-col items-center" disabled>
                              <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                             Retirar Fondos
                         </button>
@@ -558,7 +667,7 @@
                     <!-- Input de Cantidad USD -->
                     <div class="mb-4">
                         <label for="amount-usd" class="block text-lg font-semibold text-gray-700 mb-2">Cantidad en USD (Mín. $${MIN_USD_AMOUNT})</label>
-                        <input type="number" id="amount-usd" min="${MIN_USD_AMOUNT}" value="${amountUsd}" step="1"
+                        <input type="number" id="amount-usd" min="${MIN_USD_AMOUNT}" value="${amountUsd.toFixed(2)}" step="0.01"
                             oninput="handleAmountChange(this)"
                             class="w-full text-4xl font-extrabold text-center p-4 border-2 border-blue-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition duration-150">
                     </div>
@@ -586,7 +695,8 @@
                 return '';
             }
             
-            const copyContent = `Detalles de Pago para Orden #${details.orderNumber} en ${details.countryName}:\n\nMonto a Pagar: ${details.amountLocal} ${details.currency}\n\nMétodos de Pago:\n${details.paymentMethods}\n\nGracias por tu recarga.`;
+            // Texto a copiar
+            const copyContent = `Detalles de Pago para Orden #${details.orderNumber} en ${details.countryName}:\n\nMonto a Pagar: ${details.amountLocal.toFixed(2)} ${details.currency}\n\nMétodos de Pago:\n${details.paymentMethods}\n\nGracias por tu recarga.`;
 
             return `
                 <div class="bg-white p-6 rounded-2xl shadow-xl">
@@ -612,12 +722,12 @@
                     <!-- Métodos de Pago -->
                     <div class="mb-6 p-4 bg-yellow-50 rounded-xl border border-yellow-300">
                         <p class="text-lg font-bold text-yellow-800 mb-3">Métodos de Pago (${details.countryName}):</p>
-                        <pre class="whitespace-pre-wrap text-sm text-gray-700 bg-white p-3 rounded-lg border">${details.paymentMethods}</pre>
+                        <pre class="text-sm text-gray-700 bg-white p-3 rounded-lg border">${details.paymentMethods}</pre>
                     </div>
 
                     <!-- Botones de Acción -->
                     <div class="space-y-3">
-                        <button onclick="copyToClipboard(\`${copyContent}\`)"
+                        <button onclick="copyToClipboard('${copyContent.replace(/'/g, "\\'")}')"
                             class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md transition duration-200 flex items-center justify-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v2"></path></svg>
                             Copiar Métodos de Pago
