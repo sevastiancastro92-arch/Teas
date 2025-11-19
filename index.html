@@ -1,776 +1,783 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Fondos y Pedidos</title>
-    <!-- Carga de Tailwind CSS -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recargar Saldo - SociosXIT</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Configuración de fuente "Inter" -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'neon-cyan': '#06B6D4',
+                        'neon-green': '#10B981',
+                        'neon-yellow': '#FBBF24',
+                        'neon-pink': '#EC4899',
+                    },
+                    boxShadow: {
+                        'neon-green': '0 0 10px rgba(16, 185, 129, 0.7), 0 0 20px rgba(16, 185, 129, 0.4)',
+                        'neon-blue': '0 0 10px rgba(6, 182, 212, 0.7), 0 0 20px rgba(6, 182, 212, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        /* Estilos base para el modo oscuro y fuente Inter */
         body {
+            background-color: #111827;
+            color: #E5E7EB;
             font-family: 'Inter', sans-serif;
-            background-color: #f4f7f9;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 1rem;
         }
-        .gradient-bg {
-            background-image: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        /* Estilo general para el contenedor principal */
+        .card {
+            background-color: #1F2937;
+            border: 1px solid #374151;
         }
-        /* Estilo para pre-formato en los métodos de pago */
-        pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
+        /* Estilo para el botón principal con efecto neón */
+        .neon-btn {
+            background-color: #10B981; /* Neon Green */
+            color: #111827;
+            font-weight: bold;
+            transition: all 0.3s ease-in-out;
+        }
+        .neon-btn:hover:not(:disabled) {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.7);
+            transform: translateY(-1px);
+        }
+        /* Clases de utilidad de color */
+        .text-neon-green { color: #10B981; }
+        .text-neon-cyan { color: #06B6D4; }
+        .text-rate { color: #FBBF24; } 
+
+        /* Estilo para los detalles de pago */
+        .payment-detail {
+            background-color: #111827;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #06B6D4;
         }
     </style>
 </head>
-<body class="min-h-screen antialiased">
+<body>
 
-    <!-- Contenedor Principal de la Aplicación -->
-    <div id="app" class="max-w-md mx-auto p-4 md:p-6 bg-white shadow-xl min-h-screen">
+    <div class="w-full max-w-2xl mt-4 md:mt-10 p-4 md:p-8 card rounded-xl shadow-2xl">
+        <h1 class="text-3xl font-extrabold text-center mb-6 text-neon-green">
+            💳 Recargar Saldo
+        </h1>
         
-        <!-- Contenedor para la Barra de Navegación/Título -->
-        <header class="mb-6">
-            <h1 class="text-3xl font-extrabold text-gray-800 text-center">Gestión de Fondos</h1>
-            <div id="user-info" class="text-xs text-center text-gray-500 mt-1">
-                <span id="auth-status">Cargando...</span> | ID: <span id="user-id"></span>
-            </div>
-        </header>
+        <p class="text-gray-400 text-center mb-6">
+            El monto mínimo de recarga es de <span class="text-neon-yellow font-bold">$3.00 USD</span>.
+        </p>
 
-        <!-- Contenido principal (Renderizado por JS) -->
-        <main id="content-container">
-            <!-- El contenido de la vista activa se insertará aquí -->
-            <div class="text-center p-10 text-gray-400">Cargando aplicación...</div>
-        </main>
+        <div class="space-y-4 mb-8">
+            <label for="countrySelect" class="block text-sm font-medium text-gray-300">Selecciona tu País:</label>
+            <select id="countrySelect" 
+                    class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-cyan transition duration-150">
+                <option value="" disabled selected>-- Seleccionar País --</option>
+                <option value="ARG">🇦🇷 Argentina (ARS)</option>
+                <option value="BOL">🇧🇴 Bolivia (BOB)</option>
+                <option value="BRL">🇧🇷 Brasil (BRL)</option>
+                <option value="CHL">🇨🇱 Chile (CLP)</option>
+                <option value="COL">🇨🇴 Colombia (COP)</option>
+                <option value="DOM">🇩🇴 República Dominicana (DOP)</option>
+                <option value="ECU">🇪🇨 Ecuador (USD)</option>
+                <option value="USA">🇺🇸 Estados Unidos (USD)</option>
+                <option value="GTM">🇬🇹 Guatemala (GTQ)</option>
+                <option value="HND">🇭🇳 Honduras (HNL)</option>
+                <option value="MEX">🇲🇽 México (MXN)</option>
+                <option value="NIC">🇳🇮 Nicaragua (NIO)</option>
+                <option value="PAN">🇵🇦 Panamá (USD)</option>
+                <option value="PRY">🇵🇾 Paraguay (PYG)</option>
+                <option value="PER">🇵🇪 Perú (PEN)</option> 
+                <option value="VEN">🇻🇪 Venezuela (VES)</option> </select>
 
-        <!-- Modal para Subir Comprobante -->
-        <div id="receipt-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
-            <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-100">
-                <h3 class="text-xl font-bold mb-4 text-gray-800">Subir Comprobante</h3>
-                <p class="mb-4 text-sm text-gray-600" id="receipt-modal-title">Para Pedido #123</p>
+            <label for="usdAmountInput" class="block text-sm font-medium text-gray-300">Monto en USD (Mínimo $3.00):</label> 
+            <input id="usdAmountInput" type="number" min="3" step="0.01" value=""
+                   class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-cyan text-xl font-bold transition duration-150"
+                   placeholder="Monto a recargar (USD)">
+            
+            <p id="errorMsg" class="text-sm text-red-400 hidden">El monto mínimo de recarga es $3.00 USD.</p>
 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Seleccionar Imagen (JPG/PNG)</label>
-                    <input type="file" id="receipt-file-input" accept="image/png, image/jpeg" class="w-full text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100
-                    "/>
-                    <div id="file-preview-name" class="text-xs text-green-600 mt-1"></div>
-                </div>
-
-                <div class="mb-6">
-                    <label for="receipt-note" class="block text-sm font-medium text-gray-700 mb-1">Nota (Opcional)</label>
-                    <textarea id="receipt-note" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150" placeholder="Escribe aquí cualquier detalle o referencia..."></textarea>
-                </div>
-
-                <button id="confirm-receipt-btn" onclick="handleConfirmReceipt()" class="w-full gradient-bg text-white py-3 px-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition duration-300 ease-in-out disabled:opacity-50">
-                    Confirmar Comprobante
-                </button>
-                <button onclick="closeModal('receipt-modal')" class="mt-2 w-full text-gray-600 bg-gray-100 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition duration-150">
-                    Cancelar
-                </button>
-            </div>
+            <button id="rechargeBtn" disabled
+                    class="w-full py-3 px-4 rounded-lg neon-btn uppercase shadow-neon-green disabled:bg-gray-600 disabled:shadow-none disabled:cursor-not-allowed">
+                Mostrar Métodos de Pago
+            </button>
         </div>
 
-        <!-- Componente de Mensaje/Notificación (No es alert) -->
-        <div id="message-box" class="fixed bottom-0 left-0 right-0 p-4 transform translate-y-full transition-transform duration-300 z-50">
-            <div class="bg-blue-600 text-white p-3 rounded-lg shadow-xl flex justify-between items-center">
-                <span id="message-text"></span>
-                <button onclick="hideMessage()" class="text-white opacity-75 hover:opacity-100 ml-4 font-bold">×</button>
+        <div id="paymentMethodsContainer" class="hidden">
+            <h2 class="text-2xl font-bold border-b border-gray-700 pb-2 mb-4 text-neon-cyan">
+                💰 Datos de Pago y Métodos
+            </h2>
+
+            <div class="space-y-2 mb-6">
+                <div class="flex justify-between items-center text-lg">
+                    <span class="font-semibold text-gray-300">País Seleccionado:</span>
+                    <span id="displayCountry" class="font-bold text-neon-cyan">--</span>
+                </div>
+                <div class="flex justify-between items-center text-2xl font-extrabold p-2 rounded-lg bg-gray-700/30 border border-gray-700">
+                    <span class="font-semibold text-gray-300">Monto a pagar:</span>
+                    <span id="displayLocalAmount" class="text-neon-yellow">--</span>
+                </div>
+                <div class="text-sm text-center font-medium text-gray-400 mb-4">
+                    Tasa utilizada: <span id="displayExchangeRate" class="text-rate">--</span>
+                </div>
+
+                <button id="copyAllBtn" class="w-full py-3 px-4 rounded-lg bg-neon-cyan hover:bg-cyan-500 transition duration-150 text-base font-bold text-gray-900 shadow-neon-blue mb-6">
+                    📄 Copiar TODOS los Datos de Pago
+                </button>
+            </div>
+
+            <h3 class="text-xl font-semibold mb-3 text-gray-300">💳 MÉTODOS DE PAGO DISPONIBLES:</h3>
+            
+            <div id="countryMethods" class="space-y-5">
+                </div>
+
+            <div class="mt-8 p-4 bg-yellow-900/40 rounded-lg border-l-4 border-neon-yellow">
+                <p class="font-bold text-neon-yellow">⚠️ IMPORTANTE:</p>
+                <ul id="importanteList" class="list-none space-y-1 mt-2 text-sm text-gray-300">
+                    </ul>
+                <p class="font-bold text-neon-green mt-4 text-sm">
+                    ✅ Una vez realizado el pago, será procesado automáticamente.
+                </p>
             </div>
         </div>
 
     </div>
 
-    <!-- Scripts de Firebase y Lógica de la Aplicación -->
-    <script type="module">
-        // Importaciones de Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, collection, query, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
+        // --- PLANTILLA UNIVERSAL DE COPIA ---
+        // Combina el encabezado, el cuerpo (métodos) y el pie (importante) para generar el texto final.
+        const UNIVERSAL_COPY_TEMPLATE = (countryData, localAmount, templateBody) => {
+            // Se usa replace para quitar la bandera y el código de moneda del nombre que se muestra en el header de la plantilla.
+            const countryName = countryData.name.replace(/.*?\s/, ''); 
 
-        // Configuración de Log de Firestore (opcional, útil para debugging)
-        setLogLevel('debug');
+            // Plantilla unificada que utiliza la moneda y el monto calculados.
+            return `💰 *DATOS DE PAGO*
 
-        // --- CONFIGURACIÓN DE PLATAFORMA ---
-        const IMGBB_API_KEY = "4612c081c225353eo3fb5d5f93d83971"; // API Key proporcionada por el usuario para ImgBB
-        
-        // --- VARIABLES GLOBALES DE FIREBASE (MANDATORIAS) ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+🌍 *País:* ${countryName}
+💸 *Monto a pagar:* ${countryData.currency} ${localAmount}
 
-        let app, db, auth;
-        let userId = null;
-        let isAuthReady = false;
+💳 *MÉTODOS DE PAGO DISPONIBLES:*
 
-        // --- MOCK DATA PARA PAÍSES Y TASAS (LISTA RESTAURADA) ---
-        const COUNTRIES = [
-            { 
-                code: 'BO', 
-                name: 'BOLIVIA', 
-                flag: '🇧🇴', 
-                rate: 12.00, 
-                currency: 'BOB', 
-                methods: 'Cuenta Banco Unión: 123456789\nTigo Money: 67890123\nQR Pago Fácil: Escanea el QR adjunto' 
+${templateBody}
+
+⚠️ *IMPORTANTE:*
+• Envía exactamente ${countryData.currency} ${localAmount}
+• Guarda el comprobante de pago
+• Envía el comprobante para confirmar el pago
+
+✅ *Una vez realizado el pago, será procesado automáticamente.*`;
+        }
+
+        // --- DEFINICIÓN DE TASAS Y DATOS DE PAGO (INCLUYENDO VENEZUELA) ---
+        const EXCHANGE_RATES = {
+            ARG: {
+                name: "🇦🇷 Argentina", 
+                currency: "ARS",
+                rate: 52000, 
+                rateDisplay: "Dólar a 52000 ARS",
+                methods: [
+                    {
+                        name: "Uala",
+                        type: "TRANSFERENCIA 🏦",
+                        details: "CVU: 0000007900203350273548 | Alias: C.CORREA1315.UALA",
+                        info: "Transferencia UALA (Dólar a 52000)", 
+                        copyValue: "CVU: 0000007900203350273548 | Alias: C.CORREA1315.UALA"
+                    }
+                ],
+                templateBody: `🔵 *Uala* (🏦 TRANSFERENCIA)
+📋 CVU: 0000007900203350273548 | Alias: C.CORREA1315.UALA
+💡 Transferencia UALA (Dólar a 52000)`
             },
-            { 
-                code: 'AR', 
-                name: 'ARGENTINA', 
-                flag: '🇦🇷', 
-                rate: 1000.00, 
-                currency: 'ARS', 
-                methods: 'Mercado Pago Alias: MI.ALIAS.MP\nCBU: 987654321' 
+            BOL: {
+                name: "🇧🇴 Bolivia",
+                currency: "BOB",
+                rate: 16, 
+                rateDisplay: "Dólar a 16 Bs", 
+                methods: [
+                    {
+                        name: "Yape",
+                        type: "EFECTIVO 💵",
+                        details: "N° Cuenta: 62656932",
+                        info: "Banca Electrónica Yape (Dólar a 16 Bs)", 
+                        copyValue: "62656932"
+                    },
+                    {
+                        name: "Yape QR",
+                        type: "CÓDIGO QR 📱",
+                        details: "Código QR disponible en el link.",
+                        info: "Escanea el código QR de Yape (Dólar a 16 Bs)", 
+                        isQR: true,
+                        qrLink: "https://i.postimg.cc/YCg1rRGF/qrbolivia.jpg"
+                    },
+                    {
+                        name: "BCP",
+                        type: "TRANSFERENCIA 🔷",
+                        details: "N° Cuenta: 20152008832355",
+                        info: "Cuenta Ahorros BCP (Dólar a 16 Bs)", 
+                        copyValue: "20152008832355"
+                    }
+                ],
+                templateBody: `💜 *Yape* (💵 EFECTIVO)
+📋 N° Cuenta: 62656932
+💡 Banca Electrónica Yape (Dólar a 16 Bs)
+
+📱 *Yape QR* (💵 EFECTIVO)
+📋 Código QR disponible en el link.  
+https://i.postimg.cc/YCg1rRGF/qrbolivia.jpg
+💡 Escanea el código QR de Yape (Dólar a 16 Bs)
+
+🔷 *BCP* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 20152008832355
+💡 Cuenta Ahorros BCP (Dólar a 16 Bs)`
             },
-            { 
-                code: 'CL', 
-                name: 'CHILE', 
-                flag: '🇨🇱', 
-                rate: 950.00, 
-                currency: 'CLP', 
-                methods: 'Transferencia Bancaria (Banco Estado): Rut 11.222.333-4' 
+            BRL: {
+                name: "🇧🇷 Brasil",
+                currency: "BRL",
+                rate: 5.2, 
+                rateDisplay: "Dólar a 5.2 BRL", 
+                methods: [
+                    {
+                        name: "PIX",
+                        type: "TRANSFERENCIA 🏦",
+                        details: "Chave PIX: 91991076791",
+                        info: "Transferência instantânea PIX",
+                        copyValue: "91991076791" 
+                    }
+                ],
+                templateBody: `🟢 *PIX* (🏦 TRANSFERENCIA)
+📋 Chave PIX: 91991076791
+💡 Transferência instantânea PIX`
             },
-            { 
-                code: 'CO', 
-                name: 'COLOMBIA', 
-                flag: '🇨🇴', 
-                rate: 4000.00, 
-                currency: 'COP', 
-                methods: 'Nequi: 3001234567\nDaviPlata: 3109876543' 
+            CHL: {
+                name: "🇨🇱 Chile",
+                currency: "CLP",
+                rate: 950, 
+                rateDisplay: "Dólar a 950 CLP (Tasa referencial)",
+                methods: [
+                    {
+                        name: "Banco Estado (Caja Vecina)",
+                        type: "EFECTIVO 💵",
+                        details: "Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151",
+                        info: "CAJA VECINA - Depósito en efectivo",
+                        copyValue: "Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151"
+                    },
+                    {
+                        name: "Banco Estado (Transferencia)",
+                        type: "TRANSFERENCIA 🏦",
+                        details: "Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151",
+                        info: "TRANSFERENCIA BANCARIA",
+                        copyValue: "Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151"
+                    }
+                ],
+                templateBody: `🏪 *Banco Estado (Caja Vecina)* (💵 EFECTIVO)
+📋 Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151
+💡 CAJA VECINA - Depósito en efectivo
+
+🟢 *Banco Estado (Transferencia)* (🏦 TRANSFERENCIA)
+📋 Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151
+💡 TRANSFERENCIA BANCARIA`
             },
-            { 
-                code: 'PE', 
-                name: 'PERÚ', 
-                flag: '🇵🇪', 
-                rate: 3.75, 
-                currency: 'PEN', 
-                methods: 'Yape: +51 987654321\nBCP: Cta. Ahorros 191-0000000-0-00' 
+            COL: {
+                name: "🇨🇴 Colombia",
+                currency: "COP",
+                rate: 4200, 
+                rateDisplay: "Dólar a 4200 COP (Tasa referencial)", 
+                methods: [
+                    {
+                        name: "Bancolombia",
+                        type: "TRANSFERENCIA 🏦",
+                        details: "N° Cuenta: 76900007797",
+                        info: "Transferencia Ahorros Bancolombia",
+                        copyValue: "N° Cuenta: 76900007797"
+                    },
+                    {
+                        name: "Nequi",
+                        type: "EFECTIVO 💵",
+                        details: "Nequi: 3016043120",
+                        info: "Envía dinero por Nequi",
+                        copyValue: "Nequi: 3016043120"
+                    },
+                    {
+                        name: "Nu Bank",
+                        type: "TRANSFERENCIA 🟣",
+                        details: "Llave Nu: @PMG3555",
+                        info: "Transferencia Nu Bank",
+                        copyValue: "Llave Nu: @PMG3555"
+                    }
+                ],
+                templateBody: `🟡 *Bancolombia* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 76900007797
+💡 Transferencia Ahorros Bancolombia
+
+🔵 *Nequi* (💵 EFECTIVO)
+📋 Nequi: 3016043120
+💡 Envía dinero por Nequi
+
+🟣 *Nu Bank* (🏦 TRANSFERENCIA)
+📋 Llave Nu: @PMG3555
+💡 Transferencia Nu Bank`
             },
-            { 
-                code: 'MX', 
-                name: 'MÉXICO', 
-                flag: '🇲🇽', 
-                rate: 18.50, 
-                currency: 'MXN', 
-                methods: 'Transferencia SPEI: CLABE 000123456789012345\nOxxo Pay: Referencia 999888777666' 
+            DOM: {
+                name: "🇩🇴 República Dominicana",
+                currency: "DOP",
+                rate: 68.00,
+                rateDisplay: "Dólar a 68 DOP",
+                methods: [
+                    {
+                        name: "Banreservas",
+                        type: "TRANSFERENCIA 🟦",
+                        details: "N° Cuenta: 9601546622",
+                        info: "Transferencia Cuenta Ahorro Banreservas",
+                        copyValue: "N° Cuenta: 9601546622"
+                    },
+                    {
+                        name: "Banco Popular",
+                        type: "TRANSFERENCIA 🔴",
+                        details: "N° Cuenta: 837147719",
+                        info: "Transferencia Cuenta Ahorro Popular",
+                        copyValue: "N° Cuenta: 837147719"
+                    },
+                    {
+                        name: "BHD León",
+                        type: "TRANSFERENCIA 🟨",
+                        details: "N° Cuenta: 34478720012",
+                        info: "Transferencia BHD León",
+                        copyValue: "N° Cuenta: 34478720012"
+                    },
+                    {
+                        name: "Qik",
+                        type: "EFECTIVO 🟢",
+                        details: "N° Cuenta: 1002173707",
+                        info: "Pago móvil Qik",
+                        copyValue: "N° Cuenta: 1002173707"
+                    }
+                ],
+                templateBody: `🟦 *Banreservas* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 9601546622
+💡 Transferencia Cuenta Ahorro Banreservas
+
+🔴 *Banco Popular* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 837147719
+💡 Transferencia Cuenta Ahorro Popular
+
+🟨 *BHD León* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 34478720012
+💡 Transferencia BHD León
+
+🟢 *Qik* (💵 EFECTIVO)
+📋 N° Cuenta: 1002173707
+💡 Pago móvil Qik`
             },
-            { 
-                code: 'EC', 
-                name: 'ECUADOR', 
-                flag: '🇪🇨', 
-                rate: 1.00, 
-                currency: 'USD', 
-                methods: 'Banco Pichincha: Cta. de Ahorros 543210987\nPayPhone: 0991122334' 
+            ECU: {
+                name: "🇪🇨 Ecuador",
+                currency: "USD",
+                rate: 1, 
+                rateDisplay: "Tasa: 1.00 (Pago en USD)",
+                methods: [
+                    {
+                        name: "Banco Pichincha",
+                        type: "TRANSFERENCIA 🏦",
+                        details: "N° Cuenta: 2207195565",
+                        info: "Transferencia Cuenta Ahorro Pichincha",
+                        copyValue: "N° Cuenta: 2207195565"
+                    }
+                ],
+                templateBody: `🟨 *Banco Pichincha* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 2207195565
+💡 Transferencia Cuenta Ahorro Pichincha`
+            },
+            USA: {
+                name: "🇺🇸 Estados Unidos",
+                currency: "USD",
+                rate: 1, 
+                rateDisplay: "Tasa: 1.00 (Pago en USD)",
+                methods: [
+                    {
+                        name: "Zelle Tickets DAVID",
+                        type: "EFECTIVO 💵",
+                        details: "Número: +1 (754) 317-1482",
+                        info: "Banca Electrónica Zelle",
+                        copyValue: "+1 (754) 317-1482"
+                    }
+                ],
+                templateBody: `💎 *Zelle Tickets DAVID* (💵 EFECTIVO)
+📋 Número: +1 (754) 317-1482
+💡 Banca Electrónica Zelle`
+            },
+            GTM: {
+                name: "🇬🇹 Guatemala", 
+                currency: "GTQ",
+                rate: 7.8, 
+                rateDisplay: "Dólar a 7.8 GTQ", 
+                methods: [
+                    {
+                        name: "Banrural",
+                        type: "TRANSFERENCIA 🏦",
+                        details: "N° Cuenta: 4431164091",
+                        info: "Transferencia Banrural",
+                        copyValue: "N° Cuenta: 4431164091"
+                    }
+                ],
+                templateBody: `🟩 *Banrural* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 4431164091
+💡 Transferencia Banrural`
+            },
+            HND: {
+                name: "🇭🇳 Honduras", 
+                currency: "HNL",
+                rate: 25.00, 
+                rateDisplay: "Dólar a 25.00 HNL", 
+                methods: [
+                    {
+                        name: "Bampais",
+                        type: "TRANSFERENCIA 🏦",
+                        details: "N° Cuenta: 216400100524",
+                        info: "Transferencia Cuenta Ahorros Bampais",
+                        copyValue: "N° Cuenta: 216400100524"
+                    }
+                ],
+                templateBody: `🔵 *Bampais* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 216400100524
+💡 Transferencia Cuenta Ahorros Bampais`
+            },
+            MEX: {
+                name: "🇲🇽 México", 
+                currency: "MXN",
+                rate: 20.00, 
+                rateDisplay: "Dólar a 20.00 MXN", 
+                methods: [
+                    {
+                        name: "Albo",
+                        type: "TRANSFERENCIA 🏦",
+                        details: "N° Cuenta: 721180100042683432",
+                        info: "SOLO TRANSFERENCIAS (Dólar a 20MX)",
+                        copyValue: "N° Cuenta: 721180100042683432"
+                    },
+                    {
+                        name: "Nu México (OXXO)",
+                        type: "EFECTIVO 💵",
+                        details: "5101 2506 8691 9389",
+                        info: "SOLO DEPOSITOS OXXO (Dólar a 20MX)",
+                        copyValue: "5101 2506 8691 9389"
+                    }
+                ],
+                templateBody: `🏦 *Albo* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 721180100042683432
+💡 SOLO TRANSFERENCIAS (Dólar a 20MX)
+
+🏪 *Nu México (OXXO)* (💵 EFECTIVO)
+📋 5101 2506 8691 9389
+💡 SOLO DEPOSITOS OXXO (Dólar a 20MX)`
+            },
+            NIC: {
+                name: "🇳🇮 Nicaragua", 
+                currency: "NIO",
+                rate: 36.5, 
+                rateDisplay: "Dólar a 36.5 NIO", 
+                methods: [
+                    {
+                        name: "BAC Nicaragua",
+                        type: "TRANSFERENCIA 🏦",
+                        details: "N° Cuenta: 371674409 | IBAN: NI37BAMC00000000000371674409",
+                        info: "Transferencia Bancaria BAC (Tasa P2P Binance)",
+                        copyValue: "N° Cuenta: 371674409 | IBAN: NI37BAMC00000000000371674409"
+                    }
+                ],
+                templateBody: `🏦 *BAC Nicaragua* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 371674409 | IBAN: NI37BAMC00000000000371674409
+💡 Transferencia Bancaria BAC (Tasa P2P Binance)`
+            },
+            PAN: {
+                name: "🇵🇦 Panamá", 
+                currency: "USD",
+                rate: 1, 
+                rateDisplay: "Tasa: 1.00 (Pago en USD)", 
+                methods: [
+                    {
+                        name: "Punto Pago Wally",
+                        type: "EFECTIVO 💵",
+                        details: "N° Cuenta: +584128975265",
+                        info: "Banca Electrónica Punto Pago Wally",
+                        copyValue: "N° Cuenta: +584128975265"
+                    },
+                    {
+                        name: "Zinli",
+                        type: "EFECTIVO 💵",
+                        details: "N° Cuenta: chauran2001@gmail.com",
+                        info: "Banca Electrónica Zinli",
+                        copyValue: "N° Cuenta: chauran2001@gmail.com"
+                    }
+                ],
+                templateBody: `🟠 *Punto Pago Wally* (💵 EFECTIVO)
+📋 N° Cuenta: +584128975265
+💡 Banca Electrónica Punto Pago Wally
+
+🟣 *Zinli* (💵 EFECTIVO)
+📋 N° Cuenta: chauran2001@gmail.com
+💡 Banca Electrónica Zinli`
+            },
+            PRY: {
+                name: "🇵🇾 Paraguay",
+                currency: "PYG",
+                rate: 7300,
+                rateDisplay: "Dólar a 7300 PYG",
+                methods: [
+                    {
+                        name: "Banco Itau",
+                        type: "TRANSFERENCIA 🏦",
+                        details: "N° Cuenta: 300406285 | Titular: DIEGO ARMANDO LEIVA ROA",
+                        info: "Transferencia Bancaria Itau",
+                        copyValue: "N° Cuenta: 300406285 | Titular: DIEGO ARMANDO LEIVA ROA"
+                    },
+                    {
+                        name: "Billetera Personal",
+                        type: "EFECTIVO 💵",
+                        details: "Billetera Personal 0993363424",
+                        info: "Transferencia a Billetera Personal",
+                        copyValue: "Billetera Personal 0993363424"
+                    }
+                ],
+                templateBody: `🏦 *Banco Itau* (🏦 TRANSFERENCIA)
+📋 N° Cuenta: 300406285 | Titular: DIEGO ARMANDO LEIVA ROA
+💡 Transferencia Bancaria Itau
+
+💳 *Billetera Personal* (💵 EFECTIVO)
+📋 Billetera Personal 0993363424
+💡 Transferencia a Billetera Personal`
+            },
+            PER: {
+                name: "🇵🇪 Perú",
+                currency: "PEN",
+                rate: 3.8,
+                rateDisplay: "Dólar a 3.8 PEN",
+                methods: [
+                    {
+                        name: "Yape",
+                        type: "EFECTIVO 💵",
+                        details: "N° Cuenta: 954302258",
+                        info: "Banca Electrónica Yape",
+                        copyValue: "N° Cuenta: 954302258"
+                    },
+                    {
+                        name: "Plin",
+                        type: "EFECTIVO 💵",
+                        details: "N° Cuenta: 954302258",
+                        info: "Banca Electrónica Plin",
+                        copyValue: "N° Cuenta: 954302258"
+                    }
+                ],
+                templateBody: `🟣 *Yape* (💵 EFECTIVO)
+📋 N° Cuenta: 954302258
+💡 Banca Electrónica Yape
+
+🔵 *Plin* (💵 EFECTIVO)
+📋 N° Cuenta: 954302258
+💡 Banca Electrónica Plin`
+            },
+            // --- PAÍS AÑADIDO: VENEZUELA (VES) ---
+            VEN: {
+                name: "🇻🇪 Venezuela",
+                currency: "VES",
+                rate: 279,
+                rateDisplay: "Dólar a 279 VES",
+                methods: [
+                    {
+                        name: "Pago Móvil",
+                        type: "EFECTIVO 🟡",
+                        details: "Pago móvil: 01020412897526531303430",
+                        info: "Pago móvil interbancario (Dólar a 279 Bs)",
+                        copyValue: "Pago móvil: 01020412897526531303430"
+                    }
+                ],
+                templateBody: `🟡 *Pago Móvil* (💵 EFECTIVO)
+📋 Pago móvil: 01020412897526531303430
+💡 Pago móvil interbancario (Dólar a 279 Bs)`
             }
-        ];
-        const MIN_USD_AMOUNT = 3;
-
-        // --- ESTADO GLOBAL DE LA APLICACIÓN ---
-        let appState = {
-            view: 'home', // Posibles vistas: 'home', 'recharge_select_country', 'recharge_enter_amount', 'recharge_payment_details', 'upload_receipt'
-            orders: [],
-            selectedCountry: null,
-            currentOrderToUpload: null, // ID del pedido para subir comprobante
-            amountUsd: MIN_USD_AMOUNT, // Cantidad en USD
-            paymentDetails: null // Detalles de la orden generada
         };
 
-        // --- FUNCIONES DE UTILIDAD UI ---
-        
-        /** Muestra un mensaje temporal en la parte inferior de la pantalla. */
-        const showMessage = (text) => {
-            const msgBox = document.getElementById('message-box');
-            document.getElementById('message-text').textContent = text;
-            msgBox.style.transform = 'translateY(0)';
-            setTimeout(() => {
-                hideMessage();
-            }, 4000);
-        };
+        // Referencias a elementos del DOM
+        const countrySelect = document.getElementById('countrySelect');
+        const usdAmountInput = document.getElementById('usdAmountInput');
+        const rechargeBtn = document.getElementById('rechargeBtn');
+        const errorMsg = document.getElementById('errorMsg');
+        const paymentMethodsContainer = document.getElementById('paymentMethodsContainer');
+        const displayCountry = document.getElementById('displayCountry');
+        const displayLocalAmount = document.getElementById('displayLocalAmount');
+        const displayExchangeRate = document.getElementById('displayExchangeRate'); 
+        const countryMethods = document.getElementById('countryMethods');
+        const importanteList = document.getElementById('importanteList');
+        const copyAllBtn = document.getElementById('copyAllBtn'); 
 
-        /** Oculta la caja de mensajes. */
-        window.hideMessage = () => {
-            document.getElementById('message-box').style.transform = 'translateY(100%)';
-        };
-
-        /** Muestra un modal (usado para subir comprobante). */
-        const showModal = (id) => {
-            document.getElementById(id).classList.remove('hidden');
-            document.getElementById(id).classList.add('flex');
-        };
-
-        /** Cierra un modal. */
-        window.closeModal = (id) => {
-            document.getElementById(id).classList.add('hidden');
-            document.getElementById(id).classList.remove('flex');
-        };
-
-        /** Copia texto al portapapeles. */
-        window.copyToClipboard = (text) => {
+        // Función de utilidad para copiar al portapapeles
+        function copyToClipboard(textToCopy, element, originalText) {
+            const cleanedText = textToCopy.trim();
+            
+            const tempInput = document.createElement('textarea');
+            tempInput.value = cleanedText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            
             try {
-                // Fallback para entornos no seguros (iframe)
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                textarea.style.position = 'fixed'; 
-                textarea.style.top = '0';
-                textarea.style.left = '0';
-                textarea.style.opacity = '0';
-                document.body.appendChild(textarea);
-                textarea.focus();
-                textarea.select();
+                // Función de copia antigua compatible con iframes
                 document.execCommand('copy');
-                document.body.removeChild(textarea);
-                showMessage('¡Detalles de pago copiados!');
+                element.textContent = '¡Copiado! ✅';
+                // Cambio visual de confirmación
+                element.classList.remove('bg-neon-cyan', 'hover:bg-cyan-500');
+                element.classList.add('bg-neon-green', 'shadow-neon-green');
+                
+                setTimeout(() => {
+                    element.textContent = originalText;
+                    // Retorno a estilos originales
+                    element.classList.remove('bg-neon-green', 'shadow-neon-green');
+                    element.classList.add('bg-neon-cyan', 'hover:bg-cyan-500');
+                }, 2000);
             } catch (err) {
-                console.error("Error al copiar", err);
-                showMessage('Error al copiar. Por favor, copie manualmente.');
+                console.error('Error al copiar: ', err);
+                element.textContent = 'Error al copiar';
             }
-        };
+            document.body.removeChild(tempInput);
+        }
 
-        // --- FIREBASE INICIALIZACIÓN Y AUTENTICACIÓN ---
-
-        const initFirebase = async () => {
-            try {
-                if (Object.keys(firebaseConfig).length === 0) {
-                    console.error("Firebase config no disponible. Usando datos de prueba.");
-                    document.getElementById('auth-status').textContent = 'Modo de Prueba (Sin persistencia)';
-                    document.getElementById('user-id').textContent = 'N/A';
-                    isAuthReady = true;
-                    render();
-                    return;
-                }
-
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Autenticación inicial
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                // Listener de cambios de estado de autenticación
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        document.getElementById('auth-status').textContent = 'Conectado';
-                        document.getElementById('user-id').textContent = userId;
-                        if (!isAuthReady) {
-                            isAuthReady = true;
-                            // Cargar datos y renderizar una vez la auth esté lista
-                            setupFirestoreListeners();
-                        }
-                    } else {
-                        userId = null;
-                        document.getElementById('auth-status').textContent = 'Desconectado';
-                        document.getElementById('user-id').textContent = 'N/A';
-                    }
-                    render(); // Renderizar después del cambio de auth
-                });
-            } catch (error) {
-                console.error("Error al inicializar Firebase o autenticar:", error);
-                document.getElementById('auth-status').textContent = 'Error de conexión';
-                isAuthReady = true;
-                render();
-            }
-        };
-
-        // --- FIREBASE MANEJO DE DATOS (Firestore) ---
-
-        const getOrdersCollectionRef = () => {
-             // Ruta para datos privados: /artifacts/{appId}/users/{userId}/orders
-            if (!db || !userId) return null;
-            return collection(db, `artifacts/${appId}/users/${userId}/orders`);
-        };
-
-        /** Configura el listener de tiempo real para los pedidos. */
-        const setupFirestoreListeners = () => {
-            const ordersRef = getOrdersCollectionRef();
-            if (!ordersRef) return;
-
-            const q = query(ordersRef);
-
-            onSnapshot(q, (snapshot) => {
-                const newOrders = [];
-                snapshot.forEach((doc) => {
-                    const orderData = doc.data();
-                    const countryInfo = COUNTRIES.find(c => c.code === orderData.countryCode);
-                    newOrders.push({
-                        id: doc.id,
-                        flag: countryInfo ? countryInfo.flag : '🌎',
-                        ...orderData
-                    });
-                });
-                // Ordenar por fecha de creación (de más reciente a más antiguo)
-                newOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                appState.orders = newOrders;
-                render();
-                // Omitir showMessage aquí para evitar spam en cada cambio de datos
-            }, (error) => {
-                console.error("Error al escuchar los pedidos:", error);
-                showMessage("Error al cargar historial de pedidos.");
-            });
-        };
-
-        /** Guarda una nueva orden de recarga. */
-        const createRechargeOrder = async (country, amountUsd, amountLocal) => {
-            if (!db || !userId) {
-                showMessage("Error: Usuario no autenticado para crear orden.");
-                return;
-            }
-
-            const ordersRef = getOrdersCollectionRef();
-            if (!ordersRef) return;
+        // Función principal para mostrar los métodos de pago
+        function showPaymentMethods() {
+            const selectedCountryCode = countrySelect.value;
+            let usdAmount = parseFloat(usdAmountInput.value);
             
-            const newOrderRef = doc(ordersRef); 
-            const newOrderData = {
-                orderNumber: Math.floor(Math.random() * 1000000), // Número de pedido simple (aleatorio)
-                countryCode: country.code,
-                countryName: country.name,
-                amountUsd: parseFloat(amountUsd.toFixed(2)),
-                amountLocal: parseFloat(amountLocal.toFixed(2)),
-                currency: country.currency,
-                rate: country.rate,
-                status: 'Pendiente de Pago',
-                receiptImageUrl: null,
-                receiptNote: null,
-                createdAt: Date.now(),
-                paymentMethods: country.methods
-            };
-
-            try {
-                await setDoc(newOrderRef, newOrderData);
-                appState.paymentDetails = { id: newOrderRef.id, ...newOrderData, flag: country.flag };
-                setView('recharge_payment_details');
-                showMessage(`¡Orden #${newOrderData.orderNumber} creada con éxito!`);
-            } catch (e) {
-                console.error("Error al añadir documento: ", e);
-                showMessage("Error al crear la orden. Intente de nuevo.");
-            }
-        };
-
-        /**
-         * Sube un archivo a ImgBB y retorna la URL.
-         * @param {File} file El archivo de imagen a subir.
-         * @returns {Promise<string>} URL de la imagen subida.
-         */
-        const uploadImageToImgBB = async (file) => {
-            if (!file) throw new Error("No se seleccionó ningún archivo.");
-
-            const formData = new FormData();
-            formData.append('image', file);
-
-            const apiUrl = `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`;
-
-            // Implementación de Backoff para reintentos de API
-            const maxRetries = 3;
-            for (let attempt = 0; attempt < maxRetries; attempt++) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        body: formData,
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error(`ImgBB API Error (Status ${response.status}):`, errorText);
-                        throw new Error(`Error en la API de ImgBB: ${response.status}`);
-                    }
-
-                    const result = await response.json();
-                    if (result.success && result.data && result.data.url) {
-                        return result.data.url;
-                    } else {
-                        throw new Error("Respuesta de ImgBB exitosa, pero la URL de la imagen no se encontró.");
-                    }
-                } catch (error) {
-                    if (attempt < maxRetries - 1) {
-                        const delay = Math.pow(2, attempt) * 1000; // Retraso exponencial
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        // Reintentar
-                    } else {
-                        throw error; // Lanzar el error después del último intento
-                    }
-                }
-            }
-        };
-
-
-        /** Actualiza una orden con la información del comprobante. */
-        const updateOrderWithReceipt = async (orderId, note, imageUrl) => {
-             if (!db || !userId) {
-                showMessage("Error: Usuario no autenticado.");
+            // Validar monto mínimo (3 USD)
+            if (isNaN(usdAmount) || usdAmount < 3) {
+                errorMsg.classList.remove('hidden');
+                paymentMethodsContainer.classList.add('hidden');
                 return;
             }
+            errorMsg.classList.add('hidden');
 
-            const ordersRef = getOrdersCollectionRef();
-            if (!ordersRef) return;
+            const countryData = EXCHANGE_RATES[selectedCountryCode];
+            
+            // Cálculo del monto en moneda local basado en la tasa
+            let rawLocalAmount = usdAmount * countryData.rate;
+            let localAmount;
 
-            try {
-                const orderDocRef = doc(ordersRef, orderId);
-                await updateDoc(orderDocRef, {
-                    status: 'Comprobante Subido',
-                    receiptImageUrl: imageUrl,
-                    receiptNote: note,
-                    uploadedAt: Date.now()
-                });
-
-                closeModal('receipt-modal');
-                showMessage(`Comprobante para Pedido subido. Pendiente de verificación.`);
-                setView('home'); // Volver a inicio
-            } catch (e) {
-                console.error("Error al actualizar la orden en Firestore: ", e);
-                showMessage("Error al confirmar el comprobante en la base de datos.");
-            }
-        };
-
-
-        // --- MANEJO DE VISTAS (STATE MACHINE) ---
-
-        /** Cambia la vista activa de la aplicación. */
-        window.setView = (newView) => {
-            appState.view = newView;
-            render();
-        };
-
-        /** Lógica para iniciar el flujo de comprobante. */
-        window.openReceiptUpload = (orderId) => {
-            const order = appState.orders.find(o => o.id === orderId);
-            if (!order || order.status === 'Comprobante Subido') {
-                showMessage('Este pedido ya tiene un comprobante subido.');
-                return;
-            }
-            appState.currentOrderToUpload = order;
-            document.getElementById('receipt-modal-title').textContent = `Para Pedido #${order.orderNumber} (${order.countryName})`;
-            document.getElementById('receipt-file-input').value = null; // Limpiar input
-            document.getElementById('receipt-note').value = ''; // Limpiar nota
-            document.getElementById('file-preview-name').textContent = '';
-            showModal('receipt-modal');
-        };
-
-        /** Maneja el evento de selección de país. */
-        window.selectCountry = (countryCode) => {
-            const country = COUNTRIES.find(c => c.code === countryCode);
-            if (country) {
-                appState.selectedCountry = country;
-                appState.amountUsd = MIN_USD_AMOUNT; // Resetear al mínimo
-                setView('recharge_enter_amount');
+            // Formateo del monto local: COP, HND, NIO, PRY y VEN se redondean a 0 decimales. Otros a 2.
+            if (selectedCountryCode === 'COL' || selectedCountryCode === 'HND' || selectedCountryCode === 'NIC' || selectedCountryCode === 'PRY' || selectedCountryCode === 'VEN') {
+                 localAmount = rawLocalAmount.toFixed(0);
             } else {
-                showMessage('País no válido.');
-            }
-        };
-
-        /** Maneja el evento de cambio de monto en USD. */
-        window.handleAmountChange = (input) => {
-            let amount = parseFloat(input.value);
-            if (isNaN(amount) || amount < MIN_USD_AMOUNT) {
-                amount = MIN_USD_AMOUNT;
-            }
-            // Asegurar que el input refleje un valor válido inmediatamente
-            input.value = amount.toFixed(2);
-            appState.amountUsd = amount;
-            render(); // Re-renderizar para actualizar el monto local
-        };
-
-        /** Maneja la creación de la orden. */
-        window.handleCreateOrder = () => {
-            const country = appState.selectedCountry;
-            const amountUsd = appState.amountUsd;
-            const amountLocal = amountUsd * country.rate;
-            
-            if (amountUsd < MIN_USD_AMOUNT) {
-                showMessage(`El monto mínimo es $${MIN_USD_AMOUNT} USD.`);
-                return;
-            }
-
-            createRechargeOrder(country, amountUsd, amountLocal);
-        };
-
-        /** Maneja la confirmación de subida del comprobante. */
-        window.handleConfirmReceipt = async () => {
-            const order = appState.currentOrderToUpload;
-            const fileInput = document.getElementById('receipt-file-input');
-            const note = document.getElementById('receipt-note').value.trim();
-            const confirmBtn = document.getElementById('confirm-receipt-btn');
-
-            if (!order) {
-                 showMessage('Error: No hay pedido seleccionado.');
-                 return;
+                 localAmount = rawLocalAmount.toFixed(2);
             }
             
-            if (!fileInput.files || fileInput.files.length === 0) {
-                showMessage('Por favor, seleccione una imagen para el comprobante.');
-                return;
-            }
+            // Actualizar encabezados y mostrar la tasa de cambio
+            displayCountry.textContent = countryData.name;
+            displayLocalAmount.textContent = `${countryData.currency} ${localAmount}`;
+            displayExchangeRate.textContent = countryData.rateDisplay; 
+            paymentMethodsContainer.classList.remove('hidden');
 
-            const file = fileInput.files[0];
-            confirmBtn.disabled = true;
-            confirmBtn.textContent = 'Subiendo Imagen...';
-            showMessage('Subiendo comprobante, por favor espere...');
+            // 1. GENERAR EL TEXTO COMPLETO A COPIAR usando la plantilla universal
+            const allMethodsText = UNIVERSAL_COPY_TEMPLATE(countryData, localAmount, countryData.templateBody);
+            
+            // Asignar el texto al botón de copiar todo
+            copyAllBtn.setAttribute('data-copy-value', allMethodsText);
+            copyAllBtn.textContent = '📄 Copiar TODOS los Datos de Pago';
+            copyAllBtn.style.display = 'block';
 
-            try {
-                // 1. Subir la imagen a ImgBB
-                const imageUrl = await uploadImageToImgBB(file);
+            // 2. Renderizar Métodos de Pago
+            countryMethods.innerHTML = ''; // Limpiar métodos anteriores
+            countryData.methods.forEach(method => {
+                const methodDiv = document.createElement('div');
+                // SE AGREGA EL RESTO DE LA ESTRUCTURA DEL MÉTODO DE PAGO QUE FALTABA
+                methodDiv.classList.add('payment-detail', 'flex', 'flex-col', 'sm:flex-row', 'justify-between', 'items-start', 'sm:items-center', 'space-y-2', 'sm:space-y-0');
                 
-                // 2. Actualizar el documento en Firestore con la URL
-                confirmBtn.textContent = 'Confirmando Pedido...';
-                await updateOrderWithReceipt(order.id, note, imageUrl);
+                // Contenido principal del método
+                const contentHtml = `
+                    <div>
+                        <div class="text-lg font-bold text-neon-cyan">${method.name} <span class="text-sm font-normal text-gray-400">(${method.type})</span></div>
+                        <div class="text-sm text-gray-300 font-mono break-all mt-1">${method.details}</div>
+                        <div class="text-xs text-neon-pink mt-1">${method.info}</div>
+                        ${method.isQR ? `<a href="${method.qrLink}" target="_blank" class="text-xs text-neon-green hover:underline block mt-1 font-semibold">Ver Código QR 📱</a>` : ''}
+                    </div>
+                    <button class="copy-btn py-2 px-3 rounded-lg bg-neon-cyan hover:bg-cyan-500 transition duration-150 text-sm font-bold text-gray-900 flex-shrink-0" 
+                            data-copy-value="${method.copyValue}">
+                        📋 Copiar Datos
+                    </button>
+                `;
                 
-            } catch (error) {
-                console.error("Fallo completo al subir comprobante:", error);
-                showMessage(`Fallo al subir comprobante: ${error.message || 'Error desconocido'}`);
-            } finally {
-                confirmBtn.disabled = false;
-                confirmBtn.textContent = 'Confirmar Comprobante';
-            }
-        };
-        
-        // Listener para actualizar el nombre del archivo en el modal
-        document.addEventListener('DOMContentLoaded', () => {
-            const fileInput = document.getElementById('receipt-file-input');
-            if(fileInput) {
-                fileInput.addEventListener('change', () => {
-                    const fileNameSpan = document.getElementById('file-preview-name');
-                    if (fileInput.files.length > 0) {
-                        fileNameSpan.textContent = `Archivo seleccionado: ${fileInput.files[0].name}`;
-                    } else {
-                        fileNameSpan.textContent = '';
-                    }
+                methodDiv.innerHTML = contentHtml;
+                countryMethods.appendChild(methodDiv);
+            });
+            // FIN DE LA ESTRUCTURA DEL MÉTODO DE PAGO
+            
+            // 3. Renderizar la sección IMPORTANTE
+            importanteList.innerHTML = '';
+            
+            // Puntos fijos de importancia
+            const importancePoints = [
+                `Asegúrate de enviar exactamente **${countryData.currency} ${localAmount}** para que tu recarga se acredite correctamente.`,
+                'Guarda el comprobante de pago hasta que tu saldo se vea reflejado en tu cuenta.',
+                'En caso de cualquier problema, contacta a soporte enviando tu comprobante de pago.'
+            ];
+
+            importancePoints.forEach(pointText => {
+                const li = document.createElement('li');
+                li.innerHTML = `• ${pointText}`;
+                importanteList.appendChild(li);
+            });
+
+            // 4. Re-adjuntar Event Listeners para los nuevos botones de copiar
+            document.querySelectorAll('.copy-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const valueToCopy = e.currentTarget.getAttribute('data-copy-value');
+                    copyToClipboard(valueToCopy, e.currentTarget, '📋 Copiar Datos');
                 });
+            });
+
+        }
+
+        // Función para validar la entrada y habilitar/deshabilitar el botón
+        function validateInput() {
+            const usdAmount = parseFloat(usdAmountInput.value);
+            const countrySelected = countrySelect.value !== "";
+            
+            const isValid = countrySelected && !isNaN(usdAmount) && usdAmount >= 3;
+            
+            rechargeBtn.disabled = !isValid;
+            
+            if (isValid) {
+                errorMsg.classList.add('hidden');
+            } else if (!isNaN(usdAmount) && usdAmount < 3) {
+                 errorMsg.classList.remove('hidden');
+            } else {
+                 errorMsg.classList.add('hidden');
             }
+            
+            // Ocultar métodos de pago si se invalida la selección
+            if (!isValid) {
+                 paymentMethodsContainer.classList.add('hidden');
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        
+        // 1. Evento para el botón principal
+        rechargeBtn.addEventListener('click', showPaymentMethods);
+        
+        // 2. Eventos para la validación de país y monto
+        countrySelect.addEventListener('change', validateInput);
+        usdAmountInput.addEventListener('input', validateInput);
+        
+        // 3. Evento para el botón de copiar todo
+        copyAllBtn.addEventListener('click', (e) => {
+            const valueToCopy = e.currentTarget.getAttribute('data-copy-value');
+            copyToClipboard(valueToCopy, e.currentTarget, '📄 Copiar TODOS los Datos de Pago');
         });
 
-
-        // --- FUNCIONES DE RENDERIZADO DE VISTAS ---
-        
-        /** Renderiza la vista del Historial de Pedidos */
-        const renderOrderHistory = () => {
-            const { orders } = appState;
-            let html = `
-                <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Historial de Pedidos</h2>
-                <div class="space-y-4">
-            `;
-
-            if (orders.length === 0) {
-                html += '<p class="text-center text-gray-500 py-6 bg-gray-50 rounded-xl">No hay pedidos registrados.</p>';
-            } else {
-                orders.forEach(order => {
-                    const statusClass = order.status === 'Comprobante Subido' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
-                    const buttonDisabled = order.status === 'Comprobante Subido' ? 'opacity-50 cursor-not-allowed' : '';
-                    const buttonText = order.status === 'Comprobante Subido' ? 'Comprobante Enviado' : 'Subir Comprobante';
-
-                    html += `
-                        <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-blue-500">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-sm font-semibold text-gray-700">Pedido #${order.orderNumber}</span>
-                                <span class="text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}">${order.status}</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                                <div><span class="font-medium">País:</span> ${order.flag || ''} ${order.countryName}</div>
-                                <div><span class="font-medium">Monto USD:</span> $${order.amountUsd.toFixed(2)}</div>
-                                <div class="col-span-2 text-base font-bold text-gray-800">
-                                    <span class="text-sm font-medium text-blue-600">A Pagar:</span> ${order.amountLocal.toFixed(2)} ${order.currency}
-                                </div>
-                            </div>
-                            <button onclick="openReceiptUpload('${order.id}')"
-                                class="mt-3 w-full text-sm py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition duration-150 ${buttonDisabled}"
-                                ${order.status === 'Comprobante Subido' ? 'disabled' : ''}>
-                                ${buttonText}
-                            </button>
-                        </div>
-                    `;
-                });
-            }
-
-            html += '</div>';
-            return html;
-        };
-
-        /** Renderiza la vista principal con botones e historial. */
-        const renderHome = () => {
-            return `
-                <div class="mb-8 p-4 bg-blue-50 rounded-2xl shadow-inner border border-blue-100">
-                    <h2 class="text-xl font-bold text-blue-700 mb-4">Operaciones Rápidas</h2>
-                    <div class="grid grid-cols-2 gap-4">
-                        <!-- Botón Recargar Saldo -->
-                        <button onclick="setView('recharge_select_country')"
-                            class="gradient-bg text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition duration-200 flex flex-col items-center">
-                            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.657 0 3 .895 3 2s-1.343 2-3 2h-1v4m-2-4v4m-2-4h2m0 0a3 3 0 110-6 3 3 0 010 6z"></path></svg>
-                            Recargar Saldo
-                        </button>
-                        <!-- Botón Retirar Fondos (Desactivado por ahora) -->
-                        <button class="bg-gray-200 text-gray-500 py-4 rounded-xl font-bold shadow-md cursor-not-allowed opacity-70 flex flex-col items-center" disabled>
-                             <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            Retirar Fondos
-                        </button>
-                    </div>
-                </div>
-                ${renderOrderHistory()}
-            `;
-        };
-
-        /** Renderiza la vista de selección de país para recarga. */
-        const renderSelectCountry = () => {
-            const countryButtons = COUNTRIES.map(c => `
-                <button onclick="selectCountry('${c.code}')"
-                    class="bg-white p-4 rounded-xl shadow-lg hover:shadow-xl hover:ring-2 hover:ring-blue-500 transition duration-200 transform hover:scale-[1.02] text-left flex items-center justify-between">
-                    <div>
-                        <div class="text-3xl mb-1">${c.flag}</div>
-                        <p class="font-bold text-gray-800">${c.name}</p>
-                        <p class="text-xs text-gray-500 mt-1">1 USD = ${c.rate.toFixed(2)} ${c.currency}</p>
-                    </div>
-                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </button>
-            `).join('');
-
-            return `
-                <button onclick="setView('home')" class="text-blue-600 mb-4 flex items-center hover:underline">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    Volver a Inicio
-                </button>
-                <div class="bg-white p-6 rounded-2xl shadow-xl">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-5">Selecciona el País a Recargar</h2>
-                    <div class="space-y-4">
-                        ${countryButtons}
-                    </div>
-                </div>
-            `;
-        };
-
-        /** Renderiza la vista de ingresar monto. */
-        const renderEnterAmount = () => {
-            const country = appState.selectedCountry;
-            const amountUsd = appState.amountUsd;
-            const amountLocal = (amountUsd * country.rate).toFixed(2);
-            
-            return `
-                <button onclick="setView('recharge_select_country')" class="text-blue-600 mb-4 flex items-center hover:underline">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    Cambiar País
-                </button>
-                <div class="bg-white p-6 rounded-2xl shadow-xl">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-5">Definir Cantidad</h2>
-                    
-                    <!-- Box de Tasa -->
-                    <div class="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200 flex items-center space-x-3">
-                        <div class="text-4xl">${country.flag}</div>
-                        <div>
-                            <p class="font-bold text-blue-800">${country.name}</p>
-                            <p class="text-sm text-gray-600">Tasa: $1 USD = ${country.rate.toFixed(2)} ${country.currency}</p>
-                        </div>
-                    </div>
-
-                    <!-- Input de Cantidad USD -->
-                    <div class="mb-4">
-                        <label for="amount-usd" class="block text-lg font-semibold text-gray-700 mb-2">Cantidad en USD (Mín. $${MIN_USD_AMOUNT})</label>
-                        <input type="number" id="amount-usd" min="${MIN_USD_AMOUNT}" value="${amountUsd.toFixed(2)}" step="0.01"
-                            oninput="handleAmountChange(this)"
-                            class="w-full text-4xl font-extrabold text-center p-4 border-2 border-blue-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition duration-150">
-                    </div>
-
-                    <!-- Monto a Pagar Local -->
-                    <div class="mt-8 mb-6 text-center p-4 bg-green-50 border border-green-300 rounded-xl">
-                        <p class="text-sm text-green-700 font-medium">Monto Total a Pagar en ${country.name}:</p>
-                        <p class="text-3xl font-extrabold text-green-800">${amountLocal} ${country.currency}</p>
-                    </div>
-
-                    <!-- Botón Crear Orden -->
-                    <button onclick="handleCreateOrder()"
-                        class="w-full gradient-bg text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition duration-200">
-                        Crear Orden de Recarga
-                    </button>
-                </div>
-            `;
-        };
-
-        /** Renderiza la vista de métodos de pago. */
-        const renderPaymentDetails = () => {
-            const details = appState.paymentDetails;
-            if (!details) {
-                setView('home'); // Volver a inicio si no hay detalles
-                return '';
-            }
-            
-            // Texto a copiar
-            const copyContent = `Detalles de Pago para Orden #${details.orderNumber} en ${details.countryName}:\n\nMonto a Pagar: ${details.amountLocal.toFixed(2)} ${details.currency}\n\nMétodos de Pago:\n${details.paymentMethods}\n\nGracias por tu recarga.`;
-
-            return `
-                <div class="bg-white p-6 rounded-2xl shadow-xl">
-                    <h2 class="text-2xl font-bold text-green-600 mb-2 text-center">¡Orden Creada!</h2>
-                    <p class="text-sm text-gray-600 mb-6 text-center">Completa el pago y sube el comprobante.</p>
-
-                    <!-- Resumen de la Orden -->
-                    <div class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-                         <div class="flex justify-between text-base">
-                            <span class="font-medium text-gray-700">País:</span>
-                            <span class="font-bold">${details.flag} ${details.countryName}</span>
-                        </div>
-                        <div class="flex justify-between text-base">
-                            <span class="font-medium text-gray-700">Monto USD:</span>
-                            <span class="font-bold text-blue-600">$${details.amountUsd.toFixed(2)} USD</span>
-                        </div>
-                        <div class="flex justify-between text-xl border-t pt-2 border-gray-300">
-                            <span class="font-extrabold text-gray-800">Total a Pagar:</span>
-                            <span class="font-extrabold text-green-700">${details.amountLocal.toFixed(2)} ${details.currency}</span>
-                        </div>
-                    </div>
-
-                    <!-- Métodos de Pago -->
-                    <div class="mb-6 p-4 bg-yellow-50 rounded-xl border border-yellow-300">
-                        <p class="text-lg font-bold text-yellow-800 mb-3">Métodos de Pago (${details.countryName}):</p>
-                        <pre class="text-sm text-gray-700 bg-white p-3 rounded-lg border">${details.paymentMethods}</pre>
-                    </div>
-
-                    <!-- Botones de Acción -->
-                    <div class="space-y-3">
-                        <button onclick="copyToClipboard('${copyContent.replace(/'/g, "\\'")}')"
-                            class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md transition duration-200 flex items-center justify-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v2"></path></svg>
-                            Copiar Métodos de Pago
-                        </button>
-                        <button onclick="setView('home')"
-                            class="w-full text-gray-700 bg-gray-200 py-3 rounded-xl font-medium hover:bg-gray-300 transition duration-150">
-                            Volver a Inicio
-                        </button>
-                    </div>
-                </div>
-            `;
-        };
-        
-
-        /** Función principal de renderizado que actualiza el DOM según el estado. */
-        const render = () => {
-            const container = document.getElementById('content-container');
-            if (!container) return;
-
-            let contentHTML = '';
-
-            switch (appState.view) {
-                case 'recharge_select_country':
-                    contentHTML = renderSelectCountry();
-                    break;
-                case 'recharge_enter_amount':
-                    contentHTML = renderEnterAmount();
-                    break;
-                case 'recharge_payment_details':
-                    contentHTML = renderPaymentDetails();
-                    break;
-                case 'home':
-                default:
-                    contentHTML = renderHome();
-                    break;
-            }
-
-            container.innerHTML = contentHTML;
-        };
-
-        // --- INICIO DE LA APLICACIÓN ---
-        window.onload = initFirebase;
+        // Inicializar el estado del botón al cargar la página
+        validateInput();
     </script>
 </body>
 </html>
-
