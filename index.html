@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Fondos y Pedidos</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuración de fuente "Inter" -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f9;
+        }
+        .gradient-bg {
+            background-image: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        }
+    </style>
+</head>
+<body class="min-h-screen antialiased">
+
+    <!-- Contenedor Principal de la Aplicación -->
+    <div id="app" class="max-w-md mx-auto p-4 md:p-6 bg-white shadow-xl min-h-screen">
+        
+        <!-- Contenedor para la Barra de Navegación/Título -->
+        <header class="mb-6">
+            <h1 class="text-3xl font-extrabold text-gray-800 text-center">Gestión de Fondos</h1>
+            <div id="user-info" class="text-xs text-center text-gray-500 mt-1">
+                <span id="auth-status">Cargando...</span> | ID: <span id="user-id"></span>
+            </div>
+        </header>
+
+        <!-- Contenido principal (Renderizado por JS) -->
+        <main id="content-container">
+            <!-- El contenido de la vista activa se insertará aquí -->
+            <div class="text-center p-10 text-gray-400">Cargando aplicación...</div>
+        </main>
+
+        <!-- Modal para Subir Comprobante -->
+        <div id="receipt-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-100">
+                <h3 class="text-xl font-bold mb-4 text-gray-800">Subir Comprobante</h3>
+                <p class="mb-4 text-sm text-gray-600" id="receipt-modal-title">Para Pedido #123</p>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Seleccionar Imagen (JPG/PNG)</label>
+                    <input type="file" id="receipt-file-input" accept="image/png, image/jpeg" class="w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100
+                    "/>
+                    <div id="file-preview-name" class="text-xs text-green-600 mt-1"></div>
+                </div>
+
+                <div class="mb-6">
+                    <label for="receipt-note" class="block text-sm font-medium text-gray-700 mb-1">Nota (Opcional)</label>
+                    <textarea id="receipt-note" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150" placeholder="Escribe aquí cualquier detalle o referencia..."></textarea>
+                </div>
+
+                <button id="confirm-receipt-btn" class="w-full gradient-bg text-white py-3 px-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition duration-300 ease-in-out disabled:opacity-50">
+                    Confirmar Comprobante
+                </button>
+                <button onclick="closeModal('receipt-modal')" class="mt-2 w-full text-gray-600 bg-gray-100 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition duration-150">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+
+        <!-- Componente de Mensaje/Notificación (No es alert) -->
+        <div id="message-box" class="fixed bottom-0 left-0 right-0 p-4 transform translate-y-full transition-transform duration-300 z-50">
+            <div class="bg-blue-600 text-white p-3 rounded-lg shadow-xl flex justify-between items-center">
+                <span id="message-text"></span>
+                <button onclick="hideMessage()" class="text-white opacity-75 hover:opacity-100 ml-4 font-bold">×</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts de Firebase y Lógica de la Aplicación -->
+    <script type="module">
+        // Importaciones de Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, collection, query, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuración de Log de Firestore (opcional, útil para debugging)
+        setLogLevel('debug');
+
+        // --- VARIABLES GLOBALES DE FIREBASE (MANDATORIAS) ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        // --- MOCK DATA PARA PAÍSES Y TASAS ---
+        const COUNTRIES = [
+            { code: 'BO', name: 'BOLIVIA', flag: '🇧🇴', rate: 12.00, currency: 'BOB', methods: 'Cuenta Banco Unión: 123456789\nTigo Money: 67890123\nQR Pago Fácil: Escanea el QR adjunto' },
+            { code: 'AR', name: 'ARGENTINA', flag: '🇦🇷', rate: 1000.00, currency: 'ARS', methods: 'Mercado Pago Alias: MI.ALIAS.MP\nCBU: 987654321' },
+            { code: 'CL', name: 'CHILE', flag: '🇨🇱', rate: 950.00, currency: 'CLP', methods: 'Transferencia Bancaria (Banco Estado): Rut 11.222.333-4' },
+            { code: 'CO', name: 'COLOMBIA', flag: '🇨🇴', rate: 4000.00, currency: 'COP', methods: 'Nequi: 3001234567\nDaviPlata: 3109876543' },
+            { code: 'PE', name: 'PERÚ', flag: '🇵🇪', rate: 3.75, currency: 'PEN', methods: 'Yape: +51 987654321\nBCP: Cta. Ahorros 191-0000000-0-00' },
+        ];
+        const MIN_USD_AMOUNT = 3;
+
+        // --- ESTADO GLOBAL DE LA APLICACIÓN ---
+        let appState = {
+            view: 'home', // Posibles vistas: 'home', 'recharge_select_country', 'recharge_enter_amount', 'recharge_payment_details', 'upload_receipt'
+            orders: [],
+            selectedCountry: null,
+            currentOrderToUpload: null, // ID del pedido para subir comprobante
+            amountUsd: MIN_USD_AMOUNT, // Cantidad en USD
+            paymentDetails: null // Detalles de la orden generada
+        };
+
+        // --- FUNCIONES DE UTILIDAD UI ---
+        
+        /** Muestra un mensaje temporal en la parte inferior de la pantalla. */
+        const showMessage = (text) => {
+            const msgBox = document.getElementById('message-box');
+            document.getElementById('message-text').textContent = text;
+            msgBox.style.transform = 'translateY(0)';
+            setTimeout(() => {
+                hideMessage();
+            }, 4000);
+        };
+
+        /** Oculta la caja de mensajes. */
+        window.hideMessage = () => {
+            document.getElementById('message-box').style.transform = 'translateY(100%)';
+        };
+
+        /** Muestra un modal (usado para subir comprobante). */
+        const showModal = (id) => {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+        };
+
+        /** Cierra un modal. */
+        window.closeModal = (id) => {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        };
+
+        /** Copia texto al portapapeles. */
+        const copyToClipboard = (text) => {
+            try {
+                // Intenta usar el método moderno
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text);
+                    showMessage('¡Detalles de pago copiados!');
+                } else {
+                    // Fallback para entornos no seguros (iframe)
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.style.position = 'fixed'; // Evita que se desplacen al copiar
+                    document.body.appendChild(textarea);
+                    textarea.focus();
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    showMessage('¡Detalles de pago copiados! (Método fallback)');
+                }
+            } catch (err) {
+                showMessage('Error al copiar: ' + err);
+            }
+        };
+
+        // --- FIREBASE INICIALIZACIÓN Y AUTENTICACIÓN ---
+
+        const initFirebase = async () => {
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    console.error("Firebase config no disponible. Usando datos de prueba.");
+                    document.getElementById('auth-status').textContent = 'Modo de Prueba (Sin persistencia)';
+                    document.getElementById('user-id').textContent = 'N/A';
+                    isAuthReady = true;
+                    render();
+                    return;
+                }
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Autenticación inicial
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    // Si no hay token personalizado, usa anónimo
+                    await signInAnonymously(auth);
+                }
+
+                // Listener de cambios de estado de autenticación
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('auth-status').textContent = 'Conectado';
+                        document.getElementById('user-id').textContent = userId;
+                        if (!isAuthReady) {
+                            isAuthReady = true;
+                            // Cargar datos y renderizar una vez la auth esté lista
+                            setupFirestoreListeners();
+                        }
+                    } else {
+                        userId = null;
+                        document.getElementById('auth-status').textContent = 'Desconectado';
+                        document.getElementById('user-id').textContent = 'N/A';
+                    }
+                    render(); // Renderizar después del cambio de auth
+                });
+            } catch (error) {
+                console.error("Error al inicializar Firebase o autenticar:", error);
+                document.getElementById('auth-status').textContent = 'Error de conexión';
+                isAuthReady = true;
+                render();
+            }
+        };
+
+        // --- FIREBASE MANEJO DE DATOS (Firestore) ---
+
+        const getOrdersCollectionRef = () => {
+             // Ruta para datos privados: /artifacts/{appId}/users/{userId}/orders
+            if (!db || !userId) return null;
+            return collection(db, `artifacts/${appId}/users/${userId}/orders`);
+        };
+
+        /** Configura el listener de tiempo real para los pedidos. */
+        const setupFirestoreListeners = () => {
+            const ordersRef = getOrdersCollectionRef();
+            if (!ordersRef) return;
+
+            const q = query(ordersRef);
+
+            onSnapshot(q, (snapshot) => {
+                const newOrders = [];
+                snapshot.forEach((doc) => {
+                    const orderData = doc.data();
+                    newOrders.push({
+                        id: doc.id,
+                        ...orderData
+                    });
+                });
+                // Ordenar por fecha de creación (asumiendo que tienen un campo 'createdAt')
+                newOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                appState.orders = newOrders;
+                render();
+                showMessage(`Historial actualizado con ${newOrders.length} pedidos.`);
+            }, (error) => {
+                console.error("Error al escuchar los pedidos:", error);
+                showMessage("Error al cargar historial de pedidos.");
+            });
+        };
+
+        /** Guarda una nueva orden de recarga. */
+        const createRechargeOrder = async (country, amountUsd, amountLocal) => {
+            if (!db || !userId) {
+                showMessage("Error: Usuario no autenticado para crear orden.");
+                return;
+            }
+
+            const ordersRef = getOrdersCollectionRef();
+            if (!ordersRef) return;
+            
+            // Usar un ID basado en el timestamp o simplemente dejar que Firestore lo genere
+            const newOrderRef = doc(ordersRef); // Firestore genera un ID automático
+            const newOrderData = {
+                orderNumber: Math.floor(Math.random() * 1000000), // Número de pedido simple (aleatorio)
+                countryCode: country.code,
+                countryName: country.name,
+                amountUsd: amountUsd,
+                amountLocal: amountLocal,
+                currency: country.currency,
+                rate: country.rate,
+                status: 'Pendiente de Pago',
+                receiptImageUrl: null,
+                createdAt: Date.now(),
+                paymentMethods: country.methods
+            };
+
+            try {
+                await setDoc(newOrderRef, newOrderData);
+                appState.paymentDetails = { id: newOrderRef.id, ...newOrderData };
+                setView('recharge_payment_details');
+                showMessage(`¡Orden #${newOrderData.orderNumber} creada con éxito!`);
+            } catch (e) {
+                console.error("Error al añadir documento: ", e);
+                showMessage("Error al crear la orden. Intente de nuevo.");
+            }
+        };
+
+        /** Actualiza una orden con la información del comprobante. */
+        const uploadReceipt = async (orderId, note, file) => {
+             if (!db || !userId) {
+                showMessage("Error: Usuario no autenticado.");
+                return;
+            }
+
+            // En un app real, aquí se subiría 'file' a Firebase Storage y se obtendría una URL
+            // Como no tenemos Storage, simularemos la URL con un string.
+            const ordersRef = getOrdersCollectionRef();
+            if (!ordersRef) return;
+
+            const receiptUrlSimulated = `simulated://receipt/${orderId}/${Date.now()}.jpg`;
+
+            try {
+                const orderDocRef = doc(ordersRef, orderId);
+                await updateDoc(orderDocRef, {
+                    status: 'Comprobante Subido',
+                    receiptImageUrl: receiptUrlSimulated,
+                    receiptNote: note,
+                    uploadedAt: Date.now()
+                });
+
+                closeModal('receipt-modal');
+                showMessage(`Comprobante para Pedido #${orderId.substring(0, 4)}... subido.`);
+                setView('home'); // Volver a inicio
+            } catch (e) {
+                console.error("Error al subir comprobante: ", e);
+                showMessage("Error al confirmar el comprobante.");
+            }
+        };
+
+
+        // --- MANEJO DE VISTAS (STATE MACHINE) ---
+
+        /** Cambia la vista activa de la aplicación. */
+        const setView = (newView) => {
+            appState.view = newView;
+            render();
+        };
+
+        /** Lógica para iniciar el flujo de comprobante. */
+        window.openReceiptUpload = (orderId) => {
+            const order = appState.orders.find(o => o.id === orderId);
+            if (!order) {
+                showMessage('Error: Pedido no encontrado.');
+                return;
+            }
+            appState.currentOrderToUpload = order;
+            document.getElementById('receipt-modal-title').textContent = `Para Pedido #${order.orderNumber} (${order.countryName})`;
+            document.getElementById('receipt-file-input').value = null; // Limpiar input
+            document.getElementById('receipt-note').value = ''; // Limpiar nota
+            document.getElementById('file-preview-name').textContent = '';
+            showModal('receipt-modal');
+        };
+
+        /** Maneja el evento de selección de país. */
+        window.selectCountry = (countryCode) => {
+            const country = COUNTRIES.find(c => c.code === countryCode);
+            if (country) {
+                appState.selectedCountry = country;
+                appState.amountUsd = MIN_USD_AMOUNT; // Resetear al mínimo
+                setView('recharge_enter_amount');
+            } else {
+                showMessage('País no válido.');
+            }
+        };
+
+        /** Maneja el evento de cambio de monto en USD. */
+        window.handleAmountChange = (input) => {
+            let amount = parseFloat(input.value);
+            if (isNaN(amount) || amount < MIN_USD_AMOUNT) {
+                amount = MIN_USD_AMOUNT;
+                input.value = MIN_USD_AMOUNT;
+            }
+            appState.amountUsd = amount;
+            render(); // Re-renderizar para actualizar el monto local
+        };
+
+        /** Maneja la creación de la orden. */
+        window.handleCreateOrder = () => {
+            const country = appState.selectedCountry;
+            const amountUsd = appState.amountUsd;
+            const amountLocal = (amountUsd * country.rate).toFixed(2);
+            
+            if (amountUsd < MIN_USD_AMOUNT) {
+                showMessage(`El monto mínimo es $${MIN_USD_AMOUNT} USD.`);
+                return;
+            }
+
+            createRechargeOrder(country, amountUsd, parseFloat(amountLocal));
+        };
+
+        /** Maneja la confirmación de subida del comprobante. */
+        window.handleConfirmReceipt = () => {
+            const order = appState.currentOrderToUpload;
+            const fileInput = document.getElementById('receipt-file-input');
+            const note = document.getElementById('receipt-note').value.trim();
+            const confirmBtn = document.getElementById('confirm-receipt-btn');
+
+            if (!order) {
+                 showMessage('Error: No hay pedido seleccionado.');
+                 return;
+            }
+            
+            // Simulación de validación de archivo
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showMessage('Por favor, seleccione una imagen para el comprobante.');
+                return;
+            }
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Subiendo...';
+
+            uploadReceipt(order.id, note, fileInput.files[0])
+                .finally(() => {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Confirmar Comprobante';
+                });
+        };
+        
+        // Listener para actualizar el nombre del archivo en el modal
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('receipt-file-input');
+            if(fileInput) {
+                fileInput.addEventListener('change', () => {
+                    const fileNameSpan = document.getElementById('file-preview-name');
+                    if (fileInput.files.length > 0) {
+                        fileNameSpan.textContent = `Archivo seleccionado: ${fileInput.files[0].name}`;
+                    } else {
+                        fileNameSpan.textContent = '';
+                    }
+                });
+            }
+
+            const confirmBtn = document.getElementById('confirm-receipt-btn');
+            if(confirmBtn) {
+                confirmBtn.onclick = window.handleConfirmReceipt;
+            }
+        });
+
+        // --- FUNCIONES DE RENDERIZADO DE VISTAS ---
+        
+        /** Renderiza la vista del Historial de Pedidos */
+        const renderOrderHistory = () => {
+            const { orders } = appState;
+            let html = `
+                <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Historial de Pedidos</h2>
+                <div class="space-y-4">
+            `;
+
+            if (orders.length === 0) {
+                html += '<p class="text-center text-gray-500 py-6 bg-gray-50 rounded-xl">No hay pedidos registrados.</p>';
+            } else {
+                orders.forEach(order => {
+                    const statusClass = order.status === 'Comprobante Subido' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
+                    const buttonDisabled = order.status === 'Comprobante Subido' ? 'opacity-50 cursor-not-allowed' : '';
+                    const buttonText = order.status === 'Comprobante Subido' ? 'Comprobante Enviado' : 'Subir Comprobante';
+
+                    html += `
+                        <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-blue-500">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-semibold text-gray-700">Pedido #${order.orderNumber}</span>
+                                <span class="text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}">${order.status}</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                                <div><span class="font-medium">País:</span> ${order.flag || ''} ${order.countryName}</div>
+                                <div><span class="font-medium">Monto USD:</span> $${order.amountUsd.toFixed(2)}</div>
+                                <div class="col-span-2 text-base font-bold text-gray-800">
+                                    <span class="text-sm font-medium text-blue-600">A Pagar:</span> ${order.amountLocal.toFixed(2)} ${order.currency}
+                                </div>
+                            </div>
+                            <button onclick="openReceiptUpload('${order.id}')"
+                                class="mt-3 w-full text-sm py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition duration-150 ${buttonDisabled}"
+                                ${order.status === 'Comprobante Subido' ? 'disabled' : ''}>
+                                ${buttonText}
+                            </button>
+                        </div>
+                    `;
+                });
+            }
+
+            html += '</div>';
+            return html;
+        };
+
+        /** Renderiza la vista principal con botones e historial. */
+        const renderHome = () => {
+            return `
+                <div class="mb-8 p-4 bg-blue-50 rounded-2xl shadow-inner border border-blue-100">
+                    <h2 class="text-xl font-bold text-blue-700 mb-4">Operaciones Rápidas</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Botón Recargar Saldo -->
+                        <button onclick="setView('recharge_select_country')"
+                            class="gradient-bg text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition duration-200 flex flex-col items-center">
+                            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.657 0 3 .895 3 2s-1.343 2-3 2h-1v4m-2-4v4m-2-4h2m0 0a3 3 0 110-6 3 3 0 010 6z"></path></svg>
+                            Recargar Saldo
+                        </button>
+                        <!-- Botón Retirar Fondos -->
+                        <button class="bg-gray-200 text-gray-700 py-4 rounded-xl font-bold shadow-md hover:bg-gray-300 transform hover:-translate-y-0.5 transition duration-200 flex flex-col items-center">
+                             <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            Retirar Fondos
+                        </button>
+                    </div>
+                </div>
+                ${renderOrderHistory()}
+            `;
+        };
+
+        /** Renderiza la vista de selección de país para recarga. */
+        const renderSelectCountry = () => {
+            const countryButtons = COUNTRIES.map(c => `
+                <button onclick="selectCountry('${c.code}')"
+                    class="bg-white p-4 rounded-xl shadow-lg hover:shadow-xl hover:ring-2 hover:ring-blue-500 transition duration-200 transform hover:scale-[1.02] text-left flex items-center justify-between">
+                    <div>
+                        <div class="text-3xl mb-1">${c.flag}</div>
+                        <p class="font-bold text-gray-800">${c.name}</p>
+                        <p class="text-xs text-gray-500 mt-1">1 USD = ${c.rate.toFixed(2)} ${c.currency}</p>
+                    </div>
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            `).join('');
+
+            return `
+                <button onclick="setView('home')" class="text-blue-600 mb-4 flex items-center hover:underline">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Volver a Inicio
+                </button>
+                <div class="bg-white p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-5">Selecciona el País a Recargar</h2>
+                    <div class="space-y-4">
+                        ${countryButtons}
+                    </div>
+                </div>
+            `;
+        };
+
+        /** Renderiza la vista de ingresar monto. */
+        const renderEnterAmount = () => {
+            const country = appState.selectedCountry;
+            const amountUsd = appState.amountUsd;
+            const amountLocal = (amountUsd * country.rate).toFixed(2);
+            
+            return `
+                <button onclick="setView('recharge_select_country')" class="text-blue-600 mb-4 flex items-center hover:underline">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Cambiar País
+                </button>
+                <div class="bg-white p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-5">Definir Cantidad</h2>
+                    
+                    <!-- Box de Tasa -->
+                    <div class="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200 flex items-center space-x-3">
+                        <div class="text-4xl">${country.flag}</div>
+                        <div>
+                            <p class="font-bold text-blue-800">${country.name}</p>
+                            <p class="text-sm text-gray-600">Tasa: $1 USD = ${country.rate.toFixed(2)} ${country.currency}</p>
+                        </div>
+                    </div>
+
+                    <!-- Input de Cantidad USD -->
+                    <div class="mb-4">
+                        <label for="amount-usd" class="block text-lg font-semibold text-gray-700 mb-2">Cantidad en USD (Mín. $${MIN_USD_AMOUNT})</label>
+                        <input type="number" id="amount-usd" min="${MIN_USD_AMOUNT}" value="${amountUsd}" step="1"
+                            oninput="handleAmountChange(this)"
+                            class="w-full text-4xl font-extrabold text-center p-4 border-2 border-blue-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+                    </div>
+
+                    <!-- Monto a Pagar Local -->
+                    <div class="mt-8 mb-6 text-center p-4 bg-green-50 border border-green-300 rounded-xl">
+                        <p class="text-sm text-green-700 font-medium">Monto Total a Pagar en ${country.name}:</p>
+                        <p class="text-3xl font-extrabold text-green-800">${amountLocal} ${country.currency}</p>
+                    </div>
+
+                    <!-- Botón Crear Orden -->
+                    <button onclick="handleCreateOrder()"
+                        class="w-full gradient-bg text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition duration-200">
+                        Crear Orden de Recarga
+                    </button>
+                </div>
+            `;
+        };
+
+        /** Renderiza la vista de métodos de pago. */
+        const renderPaymentDetails = () => {
+            const details = appState.paymentDetails;
+            if (!details) {
+                setView('home'); // Volver a inicio si no hay detalles
+                return '';
+            }
+            
+            const copyContent = `Detalles de Pago para Orden #${details.orderNumber} en ${details.countryName}:\n\nMonto a Pagar: ${details.amountLocal} ${details.currency}\n\nMétodos de Pago:\n${details.paymentMethods}\n\nGracias por tu recarga.`;
+
+            return `
+                <div class="bg-white p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-2xl font-bold text-green-600 mb-2 text-center">¡Orden Creada!</h2>
+                    <p class="text-sm text-gray-600 mb-6 text-center">Completa el pago y sube el comprobante.</p>
+
+                    <!-- Resumen de la Orden -->
+                    <div class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                         <div class="flex justify-between text-base">
+                            <span class="font-medium text-gray-700">País:</span>
+                            <span class="font-bold">${details.flag} ${details.countryName}</span>
+                        </div>
+                        <div class="flex justify-between text-base">
+                            <span class="font-medium text-gray-700">Monto USD:</span>
+                            <span class="font-bold text-blue-600">$${details.amountUsd.toFixed(2)} USD</span>
+                        </div>
+                        <div class="flex justify-between text-xl border-t pt-2 border-gray-300">
+                            <span class="font-extrabold text-gray-800">Total a Pagar:</span>
+                            <span class="font-extrabold text-green-700">${details.amountLocal.toFixed(2)} ${details.currency}</span>
+                        </div>
+                    </div>
+
+                    <!-- Métodos de Pago -->
+                    <div class="mb-6 p-4 bg-yellow-50 rounded-xl border border-yellow-300">
+                        <p class="text-lg font-bold text-yellow-800 mb-3">Métodos de Pago (${details.countryName}):</p>
+                        <pre class="whitespace-pre-wrap text-sm text-gray-700 bg-white p-3 rounded-lg border">${details.paymentMethods}</pre>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="space-y-3">
+                        <button onclick="copyToClipboard(\`${copyContent}\`)"
+                            class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md transition duration-200 flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v2"></path></svg>
+                            Copiar Métodos de Pago
+                        </button>
+                        <button onclick="setView('home')"
+                            class="w-full text-gray-700 bg-gray-200 py-3 rounded-xl font-medium hover:bg-gray-300 transition duration-150">
+                            Volver a Inicio
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+        
+
+        /** Función principal de renderizado que actualiza el DOM según el estado. */
+        const render = () => {
+            const container = document.getElementById('content-container');
+            if (!container) return;
+
+            let contentHTML = '';
+
+            switch (appState.view) {
+                case 'recharge_select_country':
+                    contentHTML = renderSelectCountry();
+                    break;
+                case 'recharge_enter_amount':
+                    contentHTML = renderEnterAmount();
+                    break;
+                case 'recharge_payment_details':
+                    contentHTML = renderPaymentDetails();
+                    break;
+                case 'home':
+                default:
+                    contentHTML = renderHome();
+                    break;
+            }
+
+            container.innerHTML = contentHTML;
+        };
+
+        // --- INICIO DE LA APLICACIÓN ---
+        window.onload = initFirebase;
+    </script>
+</body>
+</html>
+
