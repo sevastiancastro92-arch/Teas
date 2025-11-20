@@ -127,7 +127,7 @@ const menuAvatar = document.getElementById("menuAvatar");
 const menuPublicaciones = document.getElementById("menuPublicaciones");
 const menuKeys = document.getElementById("menuKeys");
 const menuLogout = document.getElementById("menuLogout");
-// NUEVO ELEMENTO DE MENÚ
+// NOTA: menuRecharge ya no se usa para abrir un modal, sino que es un <a> en el HTML.
 const menuRecharge = document.getElementById("menuRecharge"); 
 
 // existing modals
@@ -139,12 +139,12 @@ const keyModal = document.getElementById("keyModal");
 const keyModalContent = document.getElementById("keyModalContent");
 const keyCopyBtn = document.getElementById("keyCopyBtn");
 const keyCloseBtn = document.getElementById("keyCloseBtn");
-// NUEVOS ELEMENTOS DEL MODAL DE RECARGA
-const rechargeModal = document.getElementById("rechargeModal");
-const rechargeAmountInput = document.getElementById("rechargeAmountInput");
-const rechargeConfirmBtn = document.getElementById("rechargeConfirmBtn");
-const rechargeCancelBtn = document.getElementById("rechargeCancelBtn");
-const rechargeError = document.getElementById("rechargeError");
+// NOTA: Los elementos del modal de recarga han sido eliminados.
+// const rechargeModal = document.getElementById("rechargeModal");
+// const rechargeAmountInput = document.getElementById("rechargeAmountInput");
+// const rechargeConfirmBtn = document.getElementById("rechargeConfirmBtn");
+// const rechargeCancelBtn = document.getElementById("rechargeCancelBtn");
+// const rechargeError = document.getElementById("rechargeError");
 
 // NEW elements for level/progress bar
 const finalPriceDisplay = document.getElementById("finalPriceDisplay"); // Added to modal
@@ -245,9 +245,13 @@ menuLogout.addEventListener("click", ()=> {
 });
 
 // =================================================================
-// --- LÓGICA DE RECARGA DE SALDO (NUEVO) ---
+// --- LÓGICA DE RECARGA DE SALDO (ELIMINADA) ---
 // =================================================================
 
+// NOTA: La lógica de recarga fue eliminada, ya que el botón ahora es un enlace directo
+// a metodos.html en el HTML, y el modal ya no existe.
+
+/*
 // Abrir modal de recarga
 menuRecharge.addEventListener("click", ()=> { 
   closeMenu(); // Cierra el menú lateral
@@ -285,6 +289,7 @@ rechargeConfirmBtn.addEventListener("click", ()=> {
   // Redirigir
   window.open(whatsappURL, '_blank');
 });
+*/
 
 // =================================================================
 // --- FIN LÓGICA DE RECARGA ---
@@ -793,6 +798,13 @@ function loadUserPurchases(email) {
             <div class="text-xs text-neon-cyan">(-$${discountApplied} Desc.)</div>
           `;
       }
+      
+      // AÑADIDO: Botón de eliminar (requiere implementar la función deleteKey)
+      const deleteButtonHTML = `
+        <button class="mt-2 ml-2 bg-red-600 text-white font-bold py-1 px-3 rounded btn-delete-key" data-key-id="${it.id}">
+            🗑️ Eliminar
+        </button>
+      `;
 
       div.innerHTML = `
         <div class="flex flex-col md:flex-row justify-between items-start gap-2">
@@ -805,10 +817,13 @@ function loadUserPurchases(email) {
             ${priceHTML}
             <div class="mono text-sm text-green-300 mt-2 break-all">${it.key}</div>
             <button class="mt-2 bg-white text-blue-900 font-bold py-1 px-3 rounded" onclick="copiarKey('${it.key}')">Copiar</button>
-          </div>
+            ${deleteButtonHTML} </div>
         </div>`;
       myKeysList.appendChild(div);
     });
+    
+    // IMPORTANTE: Después de renderizar, adjuntar listeners a los nuevos botones
+    attachDeleteListeners();
   }
 
   searchInput.oninput = renderPurchases;
@@ -818,6 +833,53 @@ function loadUserPurchases(email) {
 function copiarKey(text) {
   navigator.clipboard.writeText(text).then(() => alert("🔑 Clave copiada al portapapeles."));
 }
+
+// =================================================================
+// --- NUEVA LÓGICA: ELIMINAR KEY DE FIREBASE ---
+// =================================================================
+
+// Función que adjunta los event listeners a los botones de eliminar después de renderizar
+function attachDeleteListeners() {
+    document.querySelectorAll('.btn-delete-key').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const keyId = e.currentTarget.getAttribute('data-key-id');
+            if (keyId) {
+                deleteKey(keyId);
+            }
+        });
+    });
+}
+
+// Función principal para eliminar la Key
+async function deleteKey(keyId) {
+    if (!currentUser) return alert("Error de sesión. Por favor, inicia sesión de nuevo.");
+    
+    // Confirmación al usuario
+    const confirmation = confirm("⚠️ ¿Estás seguro de que quieres eliminar esta Key de tu historial? Esta acción es irreversible.");
+
+    if (!confirmation) {
+        return;
+    }
+
+    try {
+        const userKey = sanitizeEmail(currentUser);
+        const keyRef = db.ref(`users/${userKey}/purchases/${keyId}`);
+        
+        await keyRef.remove();
+        
+        // La función loadUserPurchases ya tiene un listener on('value') que se activará
+        // automáticamente y re-renderizará la lista, mostrando el historial actualizado.
+        alert("✅ Key eliminada correctamente.");
+
+    } catch (error) {
+        console.error("Error al eliminar la key:", error);
+        alert("❌ Error al intentar eliminar la Key. Por favor, intenta de nuevo.");
+    }
+}
+
+// =================================================================
+// --- FIN NUEVA LÓGICA: ELIMINAR KEY DE FIREBASE ---
+// =================================================================
 
 // show publications by default
 showTab("pubs");
