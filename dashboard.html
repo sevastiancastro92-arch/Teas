@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - SociosXIT</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="text-white p-4 md:p-8 hide-on-main">
+  <canvas id="particles"></canvas>
+  <div class="app-root">
+    
+    <div id="hamburgerBtn" class="hamburger" aria-label="Menú">
+      <div class="burger">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+    
+    <div id="menuBackdrop" class="menu-backdrop"></div>
+    <aside id="sideMenu" class="side-menu" aria-hidden="true">
+      <div class="menu-user">
+        <div class="avatar" id="menuAvatar">UX</div>
+        <div>
+          <div id="menuUserName" class="font-semibold text-lg text-neon-cyan">Usuario</div>
+          <div id="menuUserBalance" class="small-muted mt-1">Saldo: $0.00</div>
+        </div>
+      </div>
+      <div style="height:8px;"></div>
+      
+      <div class="card p-3 rounded-lg border-white/5">
+          <div class="flex justify-between items-center mb-1">
+              <div id="userLevelTextMenu" class="level-label">Nivel: Base</div>
+              <div id="levelProgressTextMenu" class="small-muted text-xs">$0.00 / $50.00</div>
+          </div>
+          <div class="progress-bar">
+              <div id="levelProgressBarMenu" class="progress-fill" style="width: 0%;"></div>
+          </div>
+          <div id="levelNextGoalMenu" class="small-muted text-xs mt-1">
+              Próx. nivel (VIP): $50.00 (10% Desc.)
+          </div>
+      </div>
+      <div style="height:8px;"></div>
+      
+      <div id="menuRecharge" class="menu-item neon-btn">
+        <div class="text-neon-green">💳 Recargar Saldo</div>
+        <div class="small-muted">Abrir</div>
+      </div>
+
+      <a href="https://docs.google.com/document/d/1eeOCnYJDjFJIGpY8sfuoFdVve1d_jSrnkxSHqqqKieg/edit?usp=drivesdk" 
+         target="_blank" 
+         class="menu-item neon-btn">
+        <div class="text-neon-cyan">📚 Tutoriales</div>
+        <div class="small-muted">Ver guía</div>
+      </a>
+
+      <div id="menuPublicaciones" class="menu-item neon-btn">
+        <div class="text-neon-pink">📦 Publicaciones</div>
+        <div class="small-muted">Ir</div>
+      </div>
+
+      <div id="menuKeys" class="menu-item neon-btn">
+        <div class="text-neon-green">🔑 Mis Keys</div>
+        <div class="small-muted">Historial</div>
+      </div>
+
+      <!-- ✔️ BOTÓN NUEVO Respetando tu código -->
+      <a href="resets.html" class="menu-item neon-btn">
+        <div class="text-neon-yellow">♻️ Sistemas de Resets</div>
+        <div class="small-muted">Abrir</div>
+      </a>
+      <!-- ✔️ FIN DEL BOTÓN -->
+
+      <div id="menuLogout" class="menu-item neon-btn">
+        <div class="text-neon-pink">🚪 Cerrar sesión</div>
+        <div class="small-muted">Salir</div>
+      </div>
+
+      <div style="flex:1"></div>
+      <div class="small-muted text-xs">SociosXIT • Menú</div>
+    </aside>
+
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 p-4 rounded-lg card">
+      <div class="user-block">
+        <h1 class="text-2xl font-bold">Bienvenido, <span id="userName" class="text-blue-300"></span></h1>
+        <p class="text-sm text-gray-300">Publicaciones disponibles para ti</p>
+        <p class="text-lg mt-2">💰 Saldo: <span id="userBalance" class="font-bold text-green-400">$0.00</span> USD</p>
+      </div>
+      <div class="header-right">
+        <button id="logoutBtn" class="btn-logout neon-btn font-semibold py-2 px-4 rounded-lg transition-transform hover:scale-105">
+          Cerrar Sesión
+        </button>
+      </div>
+    </header>
+    
+    <div class="tabs">
+      <button id="tabPublicaciones" class="tab-btn active neon-btn">📦 Publicaciones</button>
+      <button id="tabKeys" class="tab-btn neon-btn">🔑 Mis Keys</button>
+    </div>
+
+    <div id="mainLevelBar" class="card p-4 rounded-xl border-white/5 mb-6">
+        <div class="flex justify-between items-center mb-1">
+            <div id="userLevelTextMain" class="level-label">Nivel: Base</div>
+            <div id="levelProgressTextMain" class="small-muted text-xs">$0.00 / $50.00</div>
+        </div>
+        <div class="progress-bar">
+            <div id="levelProgressBarMain" class="progress-fill" style="width: 0%;"></div>
+        </div>
+        <div id="levelNextGoalMain" class="small-muted text-xs mt-1">
+            Próx. nivel (VIP): $50.00 (10% Desc.)
+        </div>
+    </div>
+    
+    <main id="publicationsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></main>
+
+    <section id="myKeysContainer" class="hidden">
+      <h2 class="text-xl font-semibold mb-4">🔒 Historial de Keys compradas</h2>
+
+      <!-- 🔥🔥 BOTÓN NUEVO PARA ELIMINAR KEYS EXPIRADAS 🔥🔥 -->
+      <button id="deleteExpiredKeysBtn"
+        class="mb-4 py-2 px-4 bg-red-600 rounded-lg font-bold hover:bg-red-700 transition">
+        🗑️ Eliminar Keys Expiradas
+      </button>
+
+      <div class="flex flex-col md:flex-row gap-3 mb-4">
+        <input id="searchKeyInput" type="text" placeholder="🔍 Buscar por nombre o clave..."
+        class="w-full md:w-1/2 px-3 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400">
+        <select id="filterDateSelect" class="px-3 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-400">
+          <option value="all">📅 Todos</option>
+          <option value="today">Hoy</option>
+          <option value="7days">Últimos 7 días</option>
+          <option value="month">Este mes</option>
+        </select>
+      </div>
+      <div id="myKeysList" class="grid grid-cols-1 gap-4"></div>
+    </section>
+
+    <div id="confirmModal" class="modal-backdrop">
+      <div class="modal">
+        <div id="confirmContent">
+          <div class="text-lg font-semibold mb-2 text-neon-yellow">Confirmar compra</div>
+          <div id="confirmText" class="small-muted">¿Deseas comprar esta key?</div>
+          <div id="finalPriceDisplay" class="text-xl font-bold mt-2"></div>
+        </div>
+        <div class="actions">
+          <button id="confirmCancel" class="py-2 px-4 rounded-lg border border-white/10">Cancelar</button>
+          <button id="confirmOk" class="py-2 px-4 rounded-lg bg-green-500 font-semibold neon-btn">Comprar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="keyModal" class="modal-backdrop">
+      <div class="modal">
+        <div class="text-lg font-semibold mb-2 text-neon-cyan">Clave entregada</div>
+        <div id="keyModalContent" class="small-muted">Aquí va la clave</div>
+        <div class="actions">
+          <button id="keyCopyBtn" class="py-2 px-4 rounded-lg bg-white text-blue-900 font-semibold">Copiar</button>
+          <button id="keyCloseBtn" class="py-2 px-4 rounded-lg border border-white/10">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="rechargeModal" class="modal-backdrop">
+      <div class="modal">
+        <div class="text-lg font-semibold mb-4 text-neon-green">Recargar Saldo 💳</div>
+        <div class="small-muted mb-2">Mínimo de recarga: $4.00 USD</div>
+        
+        <input id="rechargeAmountInput" type="number" min="4" step="0.01" placeholder="Monto a recargar (USD)"
+               class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-400 placeholder-gray-400 text-2xl font-bold">
+        
+        <p id="rechargeError" class="text-sm text-red-400 mt-2 hidden">El monto mínimo de recarga es $4.00 USD.</p>
+
+        <div class="actions mt-5">
+          <button id="rechargeCancelBtn" class="py-2 px-4 rounded-lg border border-white/10">Cancelar</button>
+          <button id="rechargeConfirmBtn" class="py-2 px-4 rounded-lg bg-green-500 font-semibold neon-btn">Recargar</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script src="script.js"></script>
+</body>
+        </html>

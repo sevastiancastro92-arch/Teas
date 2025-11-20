@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SociosXIT - Acceso</title>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> 
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Estilos base */
+    * { box-sizing: border-box; font-family: "Poppins", sans-serif; }
+    body { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #ff0080, #7928ca, #2af599); background-size: 400% 400%; animation: bgMove 10s ease infinite; margin: 0; }
+    @keyframes bgMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    .container { width: 90%; max-width: 400px; background: rgba(255,255,255,0.15); border-radius: 20px; overflow: hidden; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 10px 30px rgba(255,255,255,0.3); transition: all 0.5s ease; padding: 2rem; text-align: center; color: white; }
+    h2 { color: white; margin-bottom: 1rem; font-size: 1.8rem; text-shadow: 0 0 10px #ff80ff, 0 0 20px #60a5fa; }
+    input { padding: 12px; margin: 8px 0; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; width: 100%; background: rgba(255,255,255,0.15); color: white; text-align: center; outline: none; transition: 0.3s; }
+    input::placeholder { color: rgba(255,255,255,0.7); }
+    input:focus { border-color: #ff80ff; box-shadow: 0 0 12px #ff80ff; }
+    /* Estilos para el botón estándar */
+    button.primary-btn { background: linear-gradient(90deg, #00c6ff, #0072ff); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; margin-top: 10px; transition: 0.3s; width: 100%; font-weight: 600; }
+    button.primary-btn:hover { transform: scale(1.03); box-shadow: 0 0 20px currentColor; }
+    /* Estilos para el botón de Google */
+    .google-btn { background: white; color: #444; border: 1px solid #ccc; padding: 12px; border-radius: 10px; cursor: pointer; margin-top: 15px; transition: 0.3s; width: 100%; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2); }
+    .google-btn:hover { background: #f1f1f1; transform: scale(1.03); }
+    .google-btn i { margin-right: 10px; font-size: 1.2rem; color: #db4437; }
+    /* Estilo para el nuevo botón de vincular */
+    .link-btn { background: none; border: 1px solid rgba(255, 255, 255, 0.5); color: #fff; padding: 8px; border-radius: 10px; cursor: pointer; margin-top: 15px; transition: 0.3s; width: 100%; font-weight: 400; font-size: 0.9rem; }
+    .link-btn:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.02); }
+
+    p { margin-top: 1rem; font-size: 0.9rem; }
+    a { color: #ffe0ff; text-decoration: none; font-weight: 600; cursor: pointer; }
+    .hidden { display: none; }
+    @media (max-width: 480px) { .container { width: 95%; border-radius: 15px; } }
+
+    /* --- ESTILOS DEL MODAL DE ÉXITO --- */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+    .modal-overlay.show { opacity: 1; visibility: visible; }
+    .modal-content { background: #1c1c1c; border-radius: 15px; width: 90%; max-width: 450px; padding: 30px; text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); border: 2px solid #2af599; transform: scale(0.8); opacity: 0; transition: transform 0.3s ease, opacity 0.3s ease; }
+    .modal-overlay.show .modal-content { transform: scale(1); opacity: 1; }
+    .modal-icon { font-size: 4rem; color: #2af599; margin-bottom: 15px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    .modal-title { font-size: 1.8rem; color: #fff; margin-bottom: 10px; font-weight: 700; }
+    .modal-body { color: #ccc; margin-bottom: 25px; line-height: 1.5; text-align: left; background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border-left: 5px solid #ff0080; }
+    .modal-body strong { color: #2af599; font-weight: 600; }
+    .modal-button { background: linear-gradient(90deg, #ff0080, #7928ca); color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s; width: 100%; }
+    .modal-button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 0, 128, 0.5); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="loginView">
+      <h2>Iniciar Sesión</h2>
+      <input type="text" id="loginUser" placeholder="Usuario" />
+      <input type="password" id="loginPass" placeholder="Contraseña" />
+      <button id="loginBtn" class="primary-btn">Entrar</button>
+      
+      <button class="link-btn" id="goLinkAccount">
+        Migrar Cuenta Existente a Google
+      </button>
+
+      <button class="google-btn" id="googleLoginBtn">
+        <i class="fab fa-google"></i>
+        Iniciar Sesión con Google
+      </button>
+
+      <p>¿No tienes cuenta? <a id="goRegister">Regístrate</a></p>
+    </div>
+
+    <div id="registerView" class="hidden">
+      <h2>Crear Cuenta</h2>
+      <input type="text" id="regUser" placeholder="Usuario" />
+      <input type="password" id="regPass" placeholder="Contraseña" />
+      <button id="regBtn" class="primary-btn">Registrarse</button>
+
+      <button class="google-btn" id="googleRegisterBtn">
+        <i class="fab fa-google"></i>
+        Registrarse con Google
+      </button>
+      
+      <p>¿Ya tienes cuenta? <a id="goLogin">Inicia sesión</a></p>
+    </div>
+
+    <div id="usernamePromptView" class="hidden">
+      <h2>Elige tu Usuario</h2>
+      <p style="color: #ccc; margin-bottom: 15px; font-size: 0.9rem;">
+        Solo necesitamos un nombre de usuario para tu cuenta.
+      </p>
+      <input type="text" id="promptUser" placeholder="Usuario deseado" />
+      <button id="promptUserBtn" class="primary-btn">Continuar</button>
+      <p style="color: #ffcccc;">
+        *Este usuario será tu identificador.
+      </p>
+    </div>
+
+    <div id="linkAccountView" class="hidden">
+        <h2>Migrar a Google</h2>
+        <p style="color: #ccc; margin-bottom: 15px; font-size: 0.9rem;">
+            Ingresa tu **Usuario** y **Contraseña** actuales para **migrar** tu cuenta a Google.
+            <br><span style="color:#2af599;">Tu usuario/contraseña dejarán de funcionar.</span>
+        </p>
+        <input type="text" id="linkUser" placeholder="Tu Usuario actual" />
+        <input type="password" id="linkPass" placeholder="Tu Contraseña actual" />
+        <button id="linkAccountBtn" class="primary-btn">Migrar Cuenta a Google</button>
+        <p><a id="goBackToLogin">Volver a Iniciar Sesión</a></p>
+    </div>
+
+  </div>
+
+  <div id="successModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-icon">🎉</div>
+      <div class="modal-title">¡Bienvenido a ser socio!</div>
+      <div class="modal-body">
+        <p id="successMessage"></p> 
+        <p>⚠️ Por favor, **guarda tu archivo de credenciales o recuerda tu correo de Google** mientras el desarrollador implementa mayor seguridad en la plataforma.</p>
+      </div>
+      <button class="modal-button" id="closeModalBtn">Entendido</button>
+    </div>
+  </div>
+  <script>
+    const firebaseConfig = {
+      // ¡ATENCIÓN! REEMPLAZA ESTOS VALORES CON LOS DE TU PROYECTO DE FIREBASE
+      apiKey: "AIzaSyCr1-2dIqgxoXBTKYgSusnUZorUICX2Too", 
+      authDomain: "chatglobal-e9370.firebaseapp.com",
+      databaseURL: "https://chatglobal-e9370-default-rtdb.firebaseio.com",
+      projectId: "chatglobal-e9370",
+      storageBucket: "chatglobal-e9370.firebasestorage.app",
+      messagingSenderId: "382420208590",
+      appId: "1:382420208590:web:9425fa28c8cdf669adb99f"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth(); 
+    const usersRef = db.ref("users");
+    const uidMapRef = db.ref("uid_map"); 
+
+    const views = ["loginView", "registerView", "usernamePromptView", "linkAccountView"];
+    const show = (id) => views.forEach(v => document.getElementById(v).classList.toggle("hidden", v !== id));
+
+    document.getElementById("goRegister").onclick = () => show("registerView");
+    document.getElementById("goLogin").onclick = () => show("loginView");
+    document.getElementById("goLinkAccount").onclick = () => show("linkAccountView");
+    document.getElementById("goBackToLogin").onclick = () => show("loginView");
+
+    let googleUserData = null; 
+
+    // --- FUNCIONES MODAL ---
+    const successModal = document.getElementById("successModal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const successMessage = document.getElementById("successMessage");
+
+    const showModal = (isManualRegistration, username, isLinking = false) => {
+        if (isLinking) {
+            successMessage.innerHTML = `🎉 ¡Éxito! Tu cuenta (**${username}**) ha sido migrada a Google.<br> Ahora inicia sesión usando el botón de Google.`;
+        } else if (isManualRegistration) {
+            successMessage.innerHTML = `✅ Tu cuenta (**${username}**) ha sido creada con **éxito**.<br>💾 Tu información de acceso se descargó **automáticamente** en el archivo \`credenciales.txt\`.`;
+        } else {
+            successMessage.innerHTML = `✅ Has completado tu registro (**${username}**) con **Google** exitosamente.`;
+        }
+        successModal.classList.remove("hidden");
+        setTimeout(() => successModal.classList.add("show"), 10); 
+    };
+
+    const hideModal = () => {
+        successModal.classList.remove("show");
+        setTimeout(() => {
+            successModal.classList.add("hidden");
+            // Redirige al dashboard o a la vista de login si no hay sesión
+            sessionStorage.getItem("sociosxit_user") ? window.location.href = "dashboard.html" : show("loginView"); 
+        }, 300); 
+    };
+
+    closeModalBtn.onclick = hideModal;
+
+    // --- FUNCION PARA DESCARGAR CREDENCIALES ---
+    function descargarCredenciales(usuario, password) {
+      const fecha = new Date();
+      const contenido = `🎉 Bienvenido a SociosXIT!\n\nUsuario: ${usuario}\nContraseña: ${password}\nFecha de registro: ${fecha.toLocaleString()}\n\nPor favor, guarda este archivo en un lugar seguro...`;
+      const blob = new Blob([contenido], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "credenciales.txt";
+      link.click();
+    }
+
+    // --- REGISTRO MANUAL ---
+    document.getElementById("regBtn").onclick = async () => {
+      const user = regUser.value.trim();
+      const pass = regPass.value.trim();
+      if (!user || !pass) return alert("Completa todos los campos");
+
+      try {
+        const snap = await usersRef.child(user).once("value");
+        if (snap.exists()) return alert("El usuario ya existe");
+
+        await usersRef.child(user).set({ password: pass, verified: true });
+
+        descargarCredenciales(user, pass);
+        showModal(true, user); 
+      } catch (error) {
+        console.error("Error al registrar: ", error);
+        alert("Ocurrió un error al registrar: " + error.message);
+      }
+    };
+
+    // --- LOGIN MANUAL ---
+    document.getElementById("loginBtn").onclick = async () => {
+      const user = loginUser.value.trim();
+      const pass = loginPass.value.trim();
+      if (!user || !pass) return alert("Completa todos los campos");
+
+      try {
+        const snap = await usersRef.child(user).once("value");
+        if (!snap.exists() || snap.val().password !== pass) return alert("Datos incorrectos");
+        
+        // Verifica si la cuenta ha sido migrada (ya no tiene contraseña)
+        if (snap.val().password === null && snap.val().provider && snap.val().provider.startsWith('google')) {
+             return alert("Esta cuenta ha sido migrada a Google. Por favor, usa el botón 'Iniciar Sesión con Google'.");
+        }
+
+        sessionStorage.setItem("sociosxit_user", user);
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        console.error("Error al iniciar sesión: ", error);
+        alert("Ocurrió un error al iniciar sesión: " + error.message);
+      }
+    };
+
+    // --- LÓGICA DE GOOGLE ---
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    async function signInWithGoogle() {
+      try {
+        const result = await auth.signInWithPopup(provider);
+        const user = result.user;
+        const uid = user.uid; 
+        
+        const uidSnap = await uidMapRef.child(uid).once("value");
+
+        if (uidSnap.exists()) {
+          // Usuario REGRESANDO: Inicia sesión con el nombre de usuario mapeado
+          const customUser = uidSnap.val();
+          sessionStorage.setItem("sociosxit_user", customUser);
+          window.location.href = "dashboard.html";
+
+        } else {
+          // Usuario NUEVO: Necesita elegir un nombre de usuario
+          googleUserData = user; 
+          show("usernamePromptView"); 
+          // Sugerir un nombre de usuario basado en el nombre de Google
+          document.getElementById("promptUser").value = user.displayName ? user.displayName.replace(/\s/g, '').toLowerCase() : user.email.split('@')[0];
+        }
+
+      } catch (error) {
+        console.error("Error en la autenticación con Google:", error);
+        if (error.code === 'auth/popup-closed-by-user') {
+            alert("La ventana de inicio de sesión con Google fue cerrada.");
+        } else {
+            alert("Ocurrió un error al iniciar sesión con Google: " + error.message);
+        }
+      }
+    }
+
+    // --- PROMPT DE USUARIO (REGISTRO GOOGLE NUEVO) ---
+    document.getElementById("promptUserBtn").onclick = async () => {
+      const customUser = promptUser.value.trim();
+
+      if (!customUser || customUser.length < 3) return alert("Ingresa un usuario válido (mínimo 3 caracteres).");
+
+      try {
+        const userSnap = await usersRef.child(customUser).once("value");
+        if (userSnap.exists()) return alert(`El usuario '${customUser}' ya existe. Por favor, elige otro.`);
+        
+        const user = googleUserData;
+        const uid = user.uid;
+
+        // 1. Registrar en la base de datos con el nombre de usuario
+        await usersRef.child(customUser).set({
+          uid: uid,
+          email: user.email,
+          name: user.displayName || "Google User",
+          provider: 'google',
+          verified: true,
+          registered_at: new Date().toISOString()
+        });
+
+        // 2. Crear el mapeo UID -> Nombre de usuario
+        await uidMapRef.child(uid).set(customUser);
+        sessionStorage.setItem("sociosxit_user", customUser);
+        showModal(false, customUser); 
+
+      } catch (error) {
+        console.error("Error al finalizar el registro de Google:", error);
+        alert("Ocurrió un error al finalizar el registro: " + error.message);
+      }
+    };
+
+    // --- LÓGICA DE MIGRACIÓN/REEMPLAZO DE CUENTA ---
+    document.getElementById("linkAccountBtn").onclick = async () => {
+        const user = linkUser.value.trim();
+        const pass = linkPass.value.trim();
+
+        if (!user || !pass) return alert("Completa tu usuario y contraseña actuales.");
+
+        try {
+            // 1. Validar las credenciales en la Realtime Database (RTDB)
+            const snap = await usersRef.child(user).once("value");
+            if (!snap.exists() || snap.val().password !== pass) {
+                return alert("Usuario o Contraseña manual incorrectos.");
+            }
+            
+            if (snap.val().uid && snap.val().provider && snap.val().provider.startsWith('google')) {
+                 return alert("Esta cuenta ya ha sido migrada a Google.");
+            }
+
+            // 2. Iniciar sesión con Google para obtener las credenciales de destino
+            alert(`✅ Credenciales manuales verificadas. Ahora inicia sesión con la cuenta de Google a la que quieres migrar la cuenta '${user}'.`);
+            
+            // Forzar el login con Google
+            const googleResult = await auth.signInWithPopup(provider);
+            
+            const googleUser = googleResult.user;
+            const googleUid = googleUser.uid;
+            const googleEmail = googleUser.email;
+            const googleDisplayName = googleUser.displayName;
+
+            // 3. Verificar si el UID de Google ya está mapeado a otro usuario en RTDB
+            const existingMapping = await uidMapRef.child(googleUid).once("value");
+            if (existingMapping.exists() && existingMapping.val() !== user) {
+                return alert("🚨 Conflicto de Cuenta: La cuenta de Google seleccionada ya está vinculada a otra cuenta de SocioXIT.");
+            }
+
+            // 4. MIGRACIÓN FORZADA: Actualizar el registro del usuario manual con los datos de Google
+            await usersRef.child(user).update({
+                uid: googleUid,
+                email: googleEmail,
+                name: googleDisplayName || user,
+                provider: 'google_migrated',
+                // Eliminamos la contraseña manual
+                password: null, 
+                migrated_at: new Date().toISOString()
+            });
+
+            // 5. Crear el mapeo UID -> Nombre de usuario
+            await uidMapRef.child(googleUid).set(user);
+            
+            // 6. Completar el inicio de sesión y mostrar el éxito
+            sessionStorage.setItem("sociosxit_user", user);
+            showModal(false, user, true); 
+
+        } catch (error) {
+            console.error("Error en el proceso de migración:", error);
+            if (error.code === 'auth/popup-closed-by-user') {
+                alert("La ventana de Google fue cerrada. Vuelve a intentarlo.");
+            } else {
+                 alert("Ocurrió un error al migrar la cuenta. Revisa la consola para más detalles.");
+            }
+        } finally {
+            // Aseguramos que el estado de Auth queda limpio
+            auth.signOut();
+        }
+    };
+
+
+    // Asignar la función a los botones de Google
+    document.getElementById("googleLoginBtn").onclick = signInWithGoogle;
+    document.getElementById("googleRegisterBtn").onclick = signInWithGoogle;
+
+  </script>
+</body>
+</html>
