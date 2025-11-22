@@ -9,47 +9,249 @@
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   <style>
+    /* Colores Neón */
+    :root {
+      --neon-red: #ff006e;
+      --neon-purple: #8338ec;
+      --neon-blue: #3a86ff;
+      --glow-red: 0 0 15px var(--neon-red);
+      --glow-purple: 0 0 15px var(--neon-purple);
+      --glow-blue: 0 0 15px var(--neon-blue);
+      /* El degradado de fondo ahora será para el body detrás de las partículas */
+      --bg-gradient: linear-gradient(135deg, #1a0033, #0d001a, #000000); /* Fondo más oscuro para que resalten las partículas */
+    }
+
     /* Estilos base */
     * { box-sizing: border-box; font-family: "Poppins", sans-serif; }
-    body { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #ff0080, #7928ca, #2af599); background-size: 400% 400%; animation: bgMove 10s ease infinite; margin: 0; }
-    @keyframes bgMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-    .container { width: 90%; max-width: 400px; background: rgba(255,255,255,0.15); border-radius: 20px; overflow: hidden; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 10px 30px rgba(255,255,255,0.3); transition: all 0.5s ease; padding: 2rem; text-align: center; color: white; }
-    h2 { color: white; margin-bottom: 1rem; font-size: 1.8rem; text-shadow: 0 0 10px #ff80ff, 0 0 20px #60a5fa; }
-    input { padding: 12px; margin: 8px 0; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; width: 100%; background: rgba(255,255,255,0.15); color: white; text-align: center; outline: none; transition: 0.3s; }
-    input::placeholder { color: rgba(255,255,255,0.7); }
-    input:focus { border-color: #ff80ff; box-shadow: 0 0 12px #ff80ff; }
-    /* Estilos para el botón estándar */
-    button.primary-btn { background: linear-gradient(90deg, #00c6ff, #0072ff); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; margin-top: 10px; transition: 0.3s; width: 100%; font-weight: 600; }
-    button.primary-btn:hover { transform: scale(1.03); box-shadow: 0 0 20px currentColor; }
-    /* Estilos para el botón de Google */
-    .google-btn { background: white; color: #444; border: 1px solid #ccc; padding: 12px; border-radius: 10px; cursor: pointer; margin-top: 15px; transition: 0.3s; width: 100%; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2); }
-    .google-btn:hover { background: #f1f1f1; transform: scale(1.03); }
-    .google-btn i { margin-right: 10px; font-size: 1.2rem; color: #db4437; }
-    /* Estilo para el nuevo botón de vincular */
-    .link-btn { background: none; border: 1px solid rgba(255, 255, 255, 0.5); color: #fff; padding: 8px; border-radius: 10px; cursor: pointer; margin-top: 15px; transition: 0.3s; width: 100%; font-weight: 400; font-size: 0.9rem; }
-    .link-btn:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.02); }
+    body { 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      height: 100vh; 
+      margin: 0; 
+      overflow: hidden; 
+      position: relative; /* Necesario para posicionar el contenedor sobre las partículas */
+      background: var(--bg-gradient); /* Un fondo sutil detrás de las partículas */
+    }
 
-    p { margin-top: 1rem; font-size: 0.9rem; }
-    a { color: #ffe0ff; text-decoration: none; font-weight: 600; cursor: pointer; }
+    /* Estilos para el fondo de partículas */
+    #particles-js {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: transparent; /* Permite ver el fondo del body */
+      background-image: url(''); /* Si quieres una imagen de fondo para las partículas */
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: 50% 50%;
+      z-index: 1; /* Asegura que las partículas estén detrás del contenido */
+    }
+
+    .container { 
+      width: 90%; 
+      max-width: 400px; 
+      /* Fondo oscuro y transparente con neón */
+      background: rgba(0,0,0,0.6); 
+      border-radius: 20px; 
+      overflow: hidden; 
+      backdrop-filter: blur(10px); 
+      border: 1px solid rgba(255,255,255,0.1); 
+      /* Sombra que simula el brillo del neón en el borde */
+      box-shadow: 0 0 30px var(--neon-purple), inset 0 0 10px rgba(255, 255, 255, 0.1); 
+      transition: all 0.5s ease; 
+      padding: 2rem; 
+      text-align: center; 
+      color: white; 
+      z-index: 2; /* Asegura que el contenedor esté sobre las partículas */
+      position: relative; /* Necesario para z-index */
+    }
+    /* Título principal con glow */
+    h2 { 
+      color: white; 
+      margin-bottom: 1.5rem; 
+      font-size: 2rem; 
+      text-shadow: var(--glow-red), var(--glow-blue); 
+      letter-spacing: 2px;
+    }
+    /* Campos de entrada */
+    input { 
+      padding: 14px; 
+      margin: 10px 0; 
+      border: 1px solid var(--neon-purple); 
+      border-radius: 10px; 
+      width: 100%; 
+      background: rgba(255,255,255,0.05); /* Fondo oscuro transparente */
+      color: white; 
+      text-align: center; 
+      outline: none; 
+      transition: 0.3s; 
+      font-size: 1rem;
+    }
+    input::placeholder { 
+      color: rgba(255,255,255,0.6); 
+    }
+    input:focus { 
+      border-color: var(--neon-red); 
+      box-shadow: var(--glow-red); 
+      background: rgba(255,255,255,0.1);
+    }
+    /* Estilos para el botón estándar (primary-btn) */
+    button.primary-btn { 
+      /* Degradado neón en el botón */
+      background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple)); 
+      color: white; 
+      border: none; 
+      padding: 14px; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      margin-top: 15px; 
+      transition: 0.3s; 
+      width: 100%; 
+      font-weight: 700; 
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
+    button.primary-btn:hover { 
+      transform: scale(1.03); 
+      /* Efecto de sombra neón más intenso en hover */
+      box-shadow: var(--glow-purple), 0 0 20px currentColor; 
+    }
+    /* Estilos para el botón de Google */
+    .google-btn { 
+      /* Mantenemos blanco para contraste, pero añadimos neón al borde */
+      background: white; 
+      color: #1a1a1a; 
+      border: 2px solid var(--neon-red); 
+      padding: 12px; 
+      border-radius: 10px; 
+      cursor: pointer; 
+      margin-top: 15px; 
+      transition: 0.3s; 
+      width: 100%; 
+      font-weight: 600; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      box-shadow: 0 0 10px rgba(255, 0, 110, 0.3);
+    }
+    .google-btn:hover { 
+      background: #f0f0f0; 
+      transform: scale(1.03); 
+      box-shadow: 0 0 20px var(--neon-red); 
+    }
+    .google-btn i { 
+      margin-right: 10px; 
+      font-size: 1.3rem; 
+      color: var(--neon-red); /* Cambiamos el color de Google por neón */
+    }
+    /* Estilo para el nuevo botón de vincular (link-btn) */
+    .link-btn { 
+      background: none; 
+      /* Borde y color de texto con brillo neón */
+      border: 1px solid var(--neon-blue); 
+      color: var(--neon-blue); 
+      padding: 10px; 
+      border-radius: 10px; 
+      cursor: pointer; 
+      margin-top: 15px; 
+      transition: 0.3s; 
+      width: 100%; 
+      font-weight: 500; 
+      font-size: 0.95rem;
+      text-shadow: 0 0 5px rgba(58, 134, 255, 0.5);
+    }
+    .link-btn:hover { 
+      background: rgba(58, 134, 255, 0.1); 
+      transform: scale(1.02); 
+      box-shadow: var(--glow-blue);
+    }
+
+    p { margin-top: 1rem; font-size: 0.9rem; color: #ccc; }
+    /* Estilo del enlace (Regístrate/Inicia Sesión) */
+    a { 
+      color: var(--neon-red); 
+      text-decoration: none; 
+      font-weight: 700; 
+      cursor: pointer; 
+      text-shadow: 0 0 5px rgba(255, 0, 110, 0.5);
+      transition: 0.3s;
+    }
+    a:hover {
+        color: white;
+        text-shadow: var(--glow-red);
+    }
     .hidden { display: none; }
     @media (max-width: 480px) { .container { width: 95%; border-radius: 15px; } }
 
     /* --- ESTILOS DEL MODAL DE ÉXITO --- */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+    .modal-overlay { 
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background-color: rgba(0, 0, 0, 0.9); /* Fondo más oscuro */
+      display: flex; justify-content: center; align-items: center; 
+      z-index: 1000; opacity: 0; visibility: hidden; 
+      transition: opacity 0.3s ease, visibility 0.3s ease; 
+    }
     .modal-overlay.show { opacity: 1; visibility: visible; }
-    .modal-content { background: #1c1c1c; border-radius: 15px; width: 90%; max-width: 450px; padding: 30px; text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); border: 2px solid #2af599; transform: scale(0.8); opacity: 0; transition: transform 0.3s ease, opacity 0.3s ease; }
+    .modal-content { 
+      background: #0d0d0d; /* Fondo negro */
+      border-radius: 15px; width: 90%; max-width: 450px; padding: 30px; 
+      text-align: center; 
+      /* Borde y sombra neón intensos */
+      box-shadow: 0 0 40px rgba(131, 56, 236, 0.8), inset 0 0 10px var(--neon-red); 
+      border: 2px solid var(--neon-purple); 
+      transform: scale(0.8); opacity: 0; 
+      transition: transform 0.3s ease, opacity 0.3s ease; 
+    }
     .modal-overlay.show .modal-content { transform: scale(1); opacity: 1; }
-    .modal-icon { font-size: 4rem; color: #2af599; margin-bottom: 15px; animation: pulse 1.5s infinite; }
+    .modal-icon { 
+      font-size: 4.5rem; 
+      color: var(--neon-blue); /* Ícono azul neón */
+      margin-bottom: 15px; 
+      text-shadow: var(--glow-blue);
+      animation: pulse 1.5s infinite; 
+    }
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-    .modal-title { font-size: 1.8rem; color: #fff; margin-bottom: 10px; font-weight: 700; }
-    .modal-body { color: #ccc; margin-bottom: 25px; line-height: 1.5; text-align: left; background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border-left: 5px solid #ff0080; }
-    .modal-body strong { color: #2af599; font-weight: 600; }
-    .modal-button { background: linear-gradient(90deg, #ff0080, #7928ca); color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s; width: 100%; }
-    .modal-button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 0, 128, 0.5); }
+    .modal-title { 
+      font-size: 2rem; 
+      color: #fff; 
+      margin-bottom: 10px; 
+      font-weight: 700;
+      text-shadow: var(--glow-red);
+    }
+    .modal-body { 
+      color: #aaa; 
+      margin-bottom: 25px; 
+      line-height: 1.6; 
+      text-align: left; 
+      background: rgba(255, 255, 255, 0.05); 
+      padding: 15px; 
+      border-radius: 10px; 
+      border-left: 5px solid var(--neon-red); /* Línea roja neón */
+    }
+    .modal-body strong { 
+      color: var(--neon-blue); /* Texto fuerte azul neón */
+      font-weight: 600; 
+      text-shadow: 0 0 5px rgba(58, 134, 255, 0.5);
+    }
+    .modal-button { 
+      /* Degradado neón */
+      background: linear-gradient(90deg, var(--neon-red), var(--neon-purple)); 
+      color: white; border: none; padding: 12px 25px; border-radius: 8px; 
+      cursor: pointer; font-weight: 700; transition: 0.3s; width: 100%;
+      letter-spacing: 1px; 
+    }
+    .modal-button:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 5px 20px rgba(255, 0, 110, 0.8); /* Sombra roja/morada intensa */
+    }
   </style>
 </head>
 <body>
+  <div id="particles-js"></div>
+
   <div class="container">
     <div id="loginView">
       <h2>Iniciar Sesión</h2>
@@ -90,7 +292,7 @@
       </p>
       <input type="text" id="promptUser" placeholder="Usuario deseado" />
       <button id="promptUserBtn" class="primary-btn">Continuar</button>
-      <p style="color: #ffcccc;">
+      <p style="color: var(--neon-red);">
         *Este usuario será tu identificador.
       </p>
     </div>
@@ -99,7 +301,7 @@
         <h2>Migrar a Google</h2>
         <p style="color: #ccc; margin-bottom: 15px; font-size: 0.9rem;">
             Ingresa tu **Usuario** y **Contraseña** actuales para **migrar** tu cuenta a Google.
-            <br><span style="color:#2af599;">Tu usuario/contraseña dejarán de funcionar.</span>
+            <br><span style="color:var(--neon-blue);">Tu usuario/contraseña dejarán de funcionar.</span>
         </p>
         <input type="text" id="linkUser" placeholder="Tu Usuario actual" />
         <input type="password" id="linkPass" placeholder="Tu Contraseña actual" />
@@ -121,6 +323,119 @@
     </div>
   </div>
   <script>
+    // Configuración de Particles.js
+    particlesJS("particles-js", {
+      "particles": {
+        "number": {
+          "value": 80,
+          "density": {
+            "enable": true,
+            "value_area": 800
+          }
+        },
+        "color": {
+          "value": ["#ff006e", "#8338ec", "#3a86ff"] /* Colores neón para las partículas */
+        },
+        "shape": {
+          "type": "circle",
+          "stroke": {
+            "width": 0,
+            "color": "#000000"
+          },
+          "polygon": {
+            "nb_sides": 5
+          },
+          "image": {
+            "src": "img/github.svg",
+            "width": 100,
+            "height": 100
+          }
+        },
+        "opacity": {
+          "value": 0.5,
+          "random": false,
+          "anim": {
+            "enable": false,
+            "speed": 1,
+            "opacity_min": 0.1,
+            "sync": false
+          }
+        },
+        "size": {
+          "value": 3,
+          "random": true,
+          "anim": {
+            "enable": false,
+            "speed": 40,
+            "size_min": 0.1,
+            "sync": false
+          }
+        },
+        "line_linked": {
+          "enable": true,
+          "distance": 150,
+          "color": "#8338ec", /* Color neón para las líneas */
+          "opacity": 0.4,
+          "width": 1
+        },
+        "move": {
+          "enable": true,
+          "speed": 2,
+          "direction": "none",
+          "random": false,
+          "straight": false,
+          "out_mode": "out",
+          "bounce": false,
+          "attract": {
+            "enable": false,
+            "rotateX": 600,
+            "rotateY": 1200
+          }
+        }
+      },
+      "interactivity": {
+        "detect_on": "canvas",
+        "events": {
+          "onhover": {
+            "enable": true,
+            "mode": "grab" /* Cambiado a 'grab' para un efecto más interactivo */
+          },
+          "onclick": {
+            "enable": true,
+            "mode": "push"
+          },
+          "resize": true
+        },
+        "modes": {
+          "grab": {
+            "distance": 180, /* Aumentado para un área de agarre mayor */
+            "line_linked": {
+              "opacity": 0.8
+            }
+          },
+          "bubble": {
+            "distance": 400,
+            "size": 40,
+            "duration": 2,
+            "opacity": 8,
+            "speed": 3
+          },
+          "repulse": {
+            "distance": 200,
+            "duration": 0.4
+          },
+          "push": {
+            "particles_nb": 4
+          },
+          "remove": {
+            "particles_nb": 2
+          }
+        }
+      },
+      "retina_detect": true
+    });
+
+    // --- CÓDIGO FIREBASE Y LÓGICA DE LA APP (NO MODIFICADO) ---
     const firebaseConfig = {
       // ¡ATENCIÓN! REEMPLAZA ESTOS VALORES CON LOS DE TU PROYECTO DE FIREBASE
       apiKey: "AIzaSyCr1-2dIqgxoXBTKYgSusnUZorUICX2Too", 
