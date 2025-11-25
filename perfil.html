@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Editar Perfil y Seguridad</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="style.css"> <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script> 
+    
+    <script src="https://sevastiancastro92-arch.github.io/Pruevafirebase/firebaseconfig.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    
+    <style>
+        /* --- Definición de colores Neón --- */
+        :root {
+            --neon-pink: #ff006e;
+            --neon-cyan: #3a86ff;
+            --neon-green: #2ecc71;
+            --bg-color: #0c001a;
+        }
+
+        /* --- Estilos Base y Fondo de Partículas --- */
+        body {
+            background-color: var(--bg-color); 
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            margin: 0;
+            position: relative;
+            font-family: 'Poppins', sans-serif; /* Usando una fuente moderna */
+        }
+        #particles {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+        .app-root {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* --- Estilo de Tarjeta (Card) --- */
+        .card {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 25px rgba(131, 56, 236, 0.3), inset 0 0 5px rgba(255, 255, 255, 0.05);
+        }
+
+        /* --- Estilos de Input (mejorados para neón) --- */
+        input:not([readonly]) {
+            transition: all 0.3s ease;
+            box-shadow: none;
+        }
+        input:not([readonly]):focus {
+            box-shadow: 0 0 10px var(--neon-cyan), 0 0 20px rgba(58, 134, 255, 0.5);
+            border-color: var(--neon-cyan);
+            background-color: #1a1a1a;
+        }
+
+        /* --- Estilos de Botón Neón Flotante --- */
+        .neon-btn {
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            color: white;
+            border: none;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(58, 134, 255, 0.5);
+        }
+        .neon-btn:hover {
+            transform: translateY(-3px) scale(1.01); /* Efecto flotante */
+            box-shadow: 0 5px 25px var(--neon-pink), 0 0 50px var(--neon-cyan);
+        }
+        
+        /* Efecto de borde brillante al pasar el ratón (animación) */
+        .neon-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: all 0.7s;
+        }
+        .neon-btn:hover::before {
+            left: 100%;
+        }
+
+        /* Colores específicos para títulos y estado */
+        .text-neon-pink { color: var(--neon-pink); text-shadow: 0 0 5px var(--neon-pink); }
+        .text-neon-cyan { color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan); }
+        .border-neon-pink { border-color: var(--neon-pink); box-shadow: 0 0 10px rgba(255, 0, 110, 0.5); }
+        .border-neon-green { border-color: var(--neon-green); box-shadow: 0 0 10px rgba(46, 204, 113, 0.5); }
+
+
+    </style>
+    
+</head>
+
+<body class="p-4 md:p-8 text-white">
+    
+    <canvas id="particles"></canvas> 
+
+    <div class="app-root relative z-10">
+        <div class="max-w-xl mx-auto mt-6">
+
+            <a href="dashboard.html" class="flex items-center text-sm font-medium text-neon-cyan hover:text-white transition duration-200 mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="m15 18-6-6 6-6"/></svg>
+                Volver al Dashboard
+            </a>
+
+            <h1 class="text-3xl md:text-4xl font-extrabold mb-8 text-neon-pink drop-shadow-lg">
+                🔧 Ajustes de Perfil
+            </h1>
+
+            <div id="statusMessage" class="hidden p-4 rounded-lg mb-4 font-semibold"></div>
+
+            <div class="card rounded-xl p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-neon-cyan">
+                    Editar Nombre de Usuario
+                </h2>
+                <form id="updateUsernameForm" class="space-y-4">
+                    <div>
+                        <label for="currentUsername" class="block text-sm font-medium text-gray-400">Nombre de Usuario Actual</label>
+                        <input type="text" id="currentUsername" readonly
+                            class="mt-1 block w-full px-4 py-3 rounded-lg bg-gray-700 text-gray-400 border border-gray-600 cursor-not-allowed">
+                    </div>
+
+                    <div>
+                        <label for="newUsername" class="block text-sm font-medium text-gray-400">Nuevo Nombre de Usuario</label>
+                        <input type="text" id="newUsername" 
+                            class="mt-1 block w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-cyan"
+                            placeholder="Ingresa un nuevo nombre">
+                    </div>
+
+                    <button type="submit" 
+                        class="neon-btn w-full text-center py-3 px-6 rounded-lg font-bold text-lg uppercase tracking-wider mt-4">
+                        Actualizar Nombre
+                    </button>
+                </form>
+            </div>
+
+            <div id="changePasswordCard" class="card rounded-xl p-6">
+                <h2 class="text-2xl font-bold mb-4 text-neon-pink">
+                    Cambiar Contraseña
+                </h2>
+                <form id="changePasswordForm" class="space-y-4">
+                    <div>
+                        <label for="currentPassword" class="block text-sm font-medium text-gray-400">Contraseña Actual</label>
+                        <input type="password" id="currentPassword" required
+                            class="mt-1 block w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-pink"
+                            placeholder="Ingresa tu contraseña actual">
+                    </div>
+                    
+                    <div>
+                        <label for="newPassword" class="block text-sm font-medium text-gray-400">Nueva Contraseña</label>
+                        <input type="password" id="newPassword" required
+                            class="mt-1 block w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-pink"
+                            placeholder="Mínimo 6 caracteres">
+                    </div>
+
+                    <div>
+                        <label for="confirmPassword" class="block text-sm font-medium text-gray-400">Confirmar Contraseña</label>
+                        <input type="password" id="confirmPassword" required
+                            class="mt-1 block w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-pink"
+                            placeholder="Repite la nueva contraseña">
+                    </div>
+
+                    <button type="submit" 
+                        class="neon-btn w-full text-center py-3 px-6 rounded-lg font-bold text-lg uppercase tracking-wider mt-4">
+                        Actualizar Contraseña
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Configuración de Particles.js
+        particlesJS("particles", {
+          "particles": {
+            "number": { "value": 80, "density": { "enable": true, "value_area": 800 } },
+            "color": { "value": ["#ff006e", "#3a86ff", "#8338ec"] }, /* Colores Neón */
+            "shape": { "type": "circle" },
+            "opacity": { "value": 0.5 },
+            "size": { "value": 3, "random": true },
+            "line_linked": { "enable": true, "distance": 150, "color": "#3a86ff", "opacity": 0.4, "width": 1 },
+            "move": { "enable": true, "speed": 2 }
+          },
+          "interactivity": {
+            "detect_on": "canvas",
+            "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" }, "resize": true },
+            "modes": { "grab": { "distance": 180, "line_linked": { "opacity": 1 } }, "push": { "particles_nb": 4 } }
+          },
+          "retina_detect": true
+        });
+
+/* ========================================================== */
+/* CONFIGURACIÓN Y UTILIDADES */
+/* ========================================================== */
+
+// Estas variables (auth, database, usersRef) son accesibles porque
+// fueron definidas globalmente en firebaseconfig.js
+
+// Referencias DOM
+const currentUsernameInput = document.getElementById('currentUsername');
+const newUsernameInput = document.getElementById('newUsername');
+const updateUsernameForm = document.getElementById('updateUsernameForm');
+const changePasswordForm = document.getElementById('changePasswordForm');
+const changePasswordCard = document.getElementById('changePasswordCard'); 
+const currentPasswordInput = document.getElementById('currentPassword'); 
+const newPasswordInput = document.getElementById('newPassword');
+const confirmPasswordInput = document.getElementById('confirmPassword');
+const statusMessage = document.getElementById('statusMessage');
+
+let currentUser = null;
+const sessionUser = sessionStorage.getItem("sociosxit_user"); 
+
+// Validación de sesión compartida
+if (!sessionUser) {
+    window.location.href = 'index.html'; 
+} else {
+    currentUsernameInput.value = sessionUser;
+}
+
+// Mostrar mensajes
+function displayStatus(message, isSuccess = true) {
+    statusMessage.textContent = message;
+    // Usa las clases de borde neón
+    statusMessage.className = `p-4 rounded-lg mb-4 font-semibold ${isSuccess ? 'bg-green-700 text-white border-2 border-neon-green' : 'bg-red-700 text-white border-2 border-neon-pink'}`;
+    statusMessage.classList.remove('hidden');
+    setTimeout(() => { statusMessage.classList.add('hidden'); }, 5000);
+}
+
+// ==========================================================
+// VISIBILIDAD DE TARJETA (BASADA EN RTDB SOLAMENTE)
+// ==========================================================
+
+auth.onAuthStateChanged(async user => { 
+    if (user) {
+        currentUser = user;
+        
+        if (changePasswordCard) {
+            
+            if (sessionUser) {
+                try {
+                    const snapshot = await usersRef.child(sessionUser).once('value');
+                    const userData = snapshot.val();
+                    
+                    // Mostrar si el usuario TIENE una propiedad 'password' y NO es null (asumiendo que es una cuenta manual)
+                    const hasManualPassword = userData && userData.password && userData.password !== null; 
+                    
+                    if (hasManualPassword) {
+                        changePasswordCard.style.display = 'block'; 
+                    } else {
+                        changePasswordCard.style.display = 'none'; 
+                    }
+
+                } catch (error) {
+                    console.error("Error al verificar el proveedor en RTDB:", error);
+                    changePasswordCard.style.display = 'none'; 
+                }
+            } else {
+                 changePasswordCard.style.display = 'none'; 
+            }
+        }
+
+    } else {
+        window.location.href = 'index.html'; 
+    }
+});
+
+/* ========================================================== */
+/* LÓGICA DE ACTUALIZACIÓN DE NOMBRE */
+/* ========================================================== */
+
+if (updateUsernameForm) {
+    updateUsernameForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!currentUser) return displayStatus('Error: Usuario no autenticado.', false);
+
+        const newUsername = newUsernameInput.value.trim();
+        if (newUsername.length < 3)
+            return displayStatus('El nombre de usuario debe tener al menos 3 caracteres.', false);
+        
+        const oldUsername = sessionStorage.getItem("sociosxit_user");
+
+        if (newUsername === oldUsername) {
+            return displayStatus('El nuevo nombre es el mismo que el actual.', false);
+        }
+
+        try {
+            // 1. Verificar si el nuevo nombre ya está ocupado
+            const snapshot = await usersRef.child(newUsername).once('value');
+            if (snapshot.exists()) {
+                return displayStatus('El nombre de usuario ya está en uso en la base de datos.', false);
+            }
+
+            // 2. Obtener la información completa del nodo antiguo
+            const oldUserDataSnapshot = await usersRef.child(oldUsername).once('value');
+            if (!oldUserDataSnapshot.exists()) {
+                 throw new Error('No se encontró el perfil antiguo en la base de datos.');
+            }
+            const userData = oldUserDataSnapshot.val();
+            
+            if (userData.name) { userData.name = newUsername; }
+            
+            // 3. Crear el nuevo nodo y eliminar el antiguo
+            await usersRef.child(newUsername).set(userData);
+            await usersRef.child(oldUsername).remove();
+            
+            // 4. Actualizar el perfil en Firebase Auth y sesión
+            await currentUser.updateProfile({ displayName: newUsername });
+            sessionStorage.setItem("sociosxit_user", newUsername); 
+            
+            // 5. Actualización de la UI
+            currentUsernameInput.value = newUsername; 
+            newUsernameInput.value = '';
+            
+            displayStatus('¡Nombre de usuario actualizado con éxito y sincronizado con la base de datos!');
+        } catch (error) {
+            console.error("Error al actualizar perfil:", error);
+            displayStatus(`Error al actualizar nombre: ${error.message}`, false);
+        }
+    });
+}
+
+/* ========================================================== */
+/* LÓGICA DE CAMBIO DE CONTRASEÑA (RTDB PURO - SIN EMAILS) */
+/* ========================================================== */
+
+if (changePasswordForm) {
+    changePasswordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!currentUser) return displayStatus('Error: Usuario no autenticado.', false);
+        
+        // Obtener valores
+        const currentPassword = currentPasswordInput.value;
+        const newPassword = newPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+
+        // Validaciones
+        if (!currentPassword) 
+            return displayStatus('Debes ingresar tu contraseña actual.', false);
+        
+        if (newPassword.length < 6)
+            return displayStatus('La nueva contraseña debe tener al menos 6 caracteres.', false);
+
+        if (newPassword !== confirmPassword)
+            return displayStatus('Las nuevas contraseñas no coinciden.', false);
+
+        
+        const sessionUser = sessionStorage.getItem("sociosxit_user");
+
+        try {
+            // 1. Obtener los datos del usuario de la RTDB
+            const snapshot = await usersRef.child(sessionUser).once('value');
+            const userData = snapshot.val();
+            
+            if (!userData || !userData.password) {
+                return displayStatus('Error: La cuenta no tiene una contraseña manual registrada.', false);
+            }
+            
+            // 🛑 2. VERIFICACIÓN DE CONTRASEÑA ACTUAL CONTRA RTDB
+            
+            const isPasswordCorrect = (userData.password === currentPassword); 
+            
+            if (!isPasswordCorrect) {
+                return displayStatus('La Contraseña Actual es incorrecta.', false);
+            }
+
+            // 🛑 3. ACTUALIZACIÓN DE CONTRASEÑA EN RTDB
+            
+            await usersRef.child(sessionUser).update({
+                password: newPassword, 
+                updated_at: new Date().toISOString()
+            });
+            
+            // 4. Limpiar campos y mostrar éxito
+            currentPasswordInput.value = '';
+            newPasswordInput.value = '';
+            confirmPasswordInput.value = '';
+            
+            displayStatus('¡Contraseña actualizada con éxito en la base de datos!', true);
+            
+        } catch (error) {
+            console.error("Error al cambiar contraseña en RTDB:", error);
+            displayStatus(`Error interno al actualizar la contraseña: ${error.message}`, false);
+        }
+    });
+}
+
+    </script>
+</body>
+</html>
