@@ -3,781 +3,417 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Recargar Saldo - SociosXIT</title>
+    <title>Dashboard | Mi Billetera</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script> 
+    <script src="https://sevastiancastro92-arch.github.io/Pruevafirebase/firebaseconfig.js"></script>
+
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        'neon-cyan': '#06B6D4',
-                        'neon-green': '#10B981',
-                        'neon-yellow': '#FBBF24',
-                        'neon-pink': '#EC4899',
-                    },
-                    boxShadow: {
-                        'neon-green': '0 0 10px rgba(16, 185, 129, 0.7), 0 0 20px rgba(16, 185, 129, 0.4)',
-                        'neon-blue': '0 0 10px rgba(6, 182, 212, 0.7), 0 0 20px rgba(6, 182, 212, 0.4)',
+                        dark: { 900: '#0f172a', 800: '#1e293b', 700: '#334155', 600: '#475569' },
+                        brand: { cyan: '#06B6D4', green: '#10B981', yellow: '#FBBF24', pink: '#EC4899', purple: '#8B5CF6' }
                     }
                 }
             }
         }
     </script>
     <style>
-        /* Estilos base para el modo oscuro y fuente Inter */
         body {
-            background-color: #111827;
-            color: #E5E7EB;
-            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                              radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%);
+            color: #f1f5f9;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 1rem;
         }
-        /* Estilo general para el contenedor principal */
-        .card {
-            background-color: #1F2937;
-            border: 1px solid #374151;
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        /* Estilo para el botón principal con efecto neón */
-        .neon-btn {
-            background-color: #10B981; /* Neon Green */
-            color: #111827;
-            font-weight: bold;
-            transition: all 0.3s ease-in-out;
-        }
-        .neon-btn:hover:not(:disabled) {
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.7);
-            transform: translateY(-1px);
-        }
-        /* Clases de utilidad de color */
-        .text-neon-green { color: #10B981; }
-        .text-neon-cyan { color: #06B6D4; }
-        .text-rate { color: #FBBF24; } 
-
-        /* Estilo para los detalles de pago */
-        .payment-detail {
-            background-color: #111827;
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            border-left: 4px solid #06B6D4;
-        }
+        .custom-scrollbar { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #334155 rgba(15, 23, 42, 0.5); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .step-hidden { display: none !important; }
+        .step-active { display: block !important; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
-<body>
+<body class="p-4 md:p-6 flex justify-center items-start pt-6">
 
-    <div class="w-full max-w-2xl mt-4 md:mt-10 p-4 md:p-8 card rounded-xl shadow-2xl">
-        <h1 class="text-3xl font-extrabold text-center mb-6 text-neon-green">
-            💳 Recargar Saldo
-        </h1>
+    <div class="w-full max-w-4xl space-y-8">
         
-        <p class="text-gray-400 text-center mb-6">
-            El monto mínimo de recarga es de <span class="text-neon-yellow font-bold">$3.00 USD</span>.
-        </p>
+        <div class="glass-panel p-6 rounded-3xl shadow-2xl relative overflow-hidden border border-slate-700/50">
+            <div class="absolute top-4 left-6">
+                <p class="text-xs text-brand-cyan font-mono">Hola, <span id="userDisplay">Cargando...</span></p>
+            </div>
 
-        <div class="space-y-4 mb-8">
-            <label for="countrySelect" class="block text-sm font-medium text-gray-300">Selecciona tu País:</label>
-            <select id="countrySelect" 
-                    class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-cyan transition duration-150">
-                <option value="" disabled selected>-- Seleccionar País --</option>
-                <option value="ARG">🇦🇷 Argentina (ARS)</option>
-                <option value="BOL">🇧🇴 Bolivia (BOB)</option>
-                <option value="BRL">🇧🇷 Brasil (BRL)</option>
-                <option value="CHL">🇨🇱 Chile (CLP)</option>
-                <option value="COL">🇨🇴 Colombia (COP)</option>
-                <option value="DOM">🇩🇴 República Dominicana (DOP)</option>
-                <option value="ECU">🇪🇨 Ecuador (USD)</option>
-                <option value="USA">🇺🇸 Estados Unidos (USD)</option>
-                <option value="GTM">🇬🇹 Guatemala (GTQ)</option>
-                <option value="HND">🇭🇳 Honduras (HNL)</option>
-                <option value="MEX">🇲🇽 México (MXN)</option>
-                <option value="NIC">🇳🇮 Nicaragua (NIO)</option>
-                <option value="PAN">🇵🇦 Panamá (USD)</option>
-                <option value="PRY">🇵🇾 Paraguay (PYG)</option>
-                <option value="PER">🇵🇪 Perú (PEN)</option> 
-                <option value="VEN">🇻🇪 Venezuela (VES)</option> </select>
+            <div class="text-center mb-6 mt-4">
+                <h1 class="text-xl md:text-2xl font-bold text-brand-green flex items-center justify-center gap-2 drop-shadow-md">
+                    <i class="fa-solid fa-star text-yellow-400"></i> Sistema de Recarga Internacional
+                </h1>
+            </div>
 
-            <label for="usdAmountInput" class="block text-sm font-medium text-gray-300">Monto en USD (Mínimo $3.00):</label> 
-            <input id="usdAmountInput" type="number" min="3" step="0.01" value=""
-                   class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-cyan text-xl font-bold transition duration-150"
-                   placeholder="Monto a recargar (USD)">
-            
-            <p id="errorMsg" class="text-sm text-red-400 hidden">El monto mínimo de recarga es $3.00 USD.</p>
-
-            <button id="rechargeBtn" disabled
-                    class="w-full py-3 px-4 rounded-lg neon-btn uppercase shadow-neon-green disabled:bg-gray-600 disabled:shadow-none disabled:cursor-not-allowed">
-                Mostrar Métodos de Pago
-            </button>
-        </div>
-
-        <div id="paymentMethodsContainer" class="hidden">
-            <h2 class="text-2xl font-bold border-b border-gray-700 pb-2 mb-4 text-neon-cyan">
-                💰 Datos de Pago y Métodos
-            </h2>
-
-            <div class="space-y-2 mb-6">
-                <div class="flex justify-between items-center text-lg">
-                    <span class="font-semibold text-gray-300">País Seleccionado:</span>
-                    <span id="displayCountry" class="font-bold text-neon-cyan">--</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="bg-dark-900/60 p-5 rounded-2xl border border-white/5 flex flex-col items-center text-center shadow-inner">
+                    <i class="fa-regular fa-credit-card text-2xl text-yellow-400 mb-2"></i>
+                    <h3 class="font-bold text-white">Múltiples Métodos</h3>
+                    <p class="text-xs text-slate-400">Bancos, efectivo y más</p>
                 </div>
-                <div class="flex justify-between items-center text-2xl font-extrabold p-2 rounded-lg bg-gray-700/30 border border-gray-700">
-                    <span class="font-semibold text-gray-300">Monto a pagar:</span>
-                    <span id="displayLocalAmount" class="text-neon-yellow">--</span>
+                <div class="bg-dark-900/60 p-5 rounded-2xl border border-white/5 flex flex-col items-center text-center shadow-inner">
+                    <i class="fa-solid fa-rocket text-2xl text-red-500 mb-2"></i>
+                    <h3 class="font-bold text-white">Proceso Rápido</h3>
+                    <p class="text-xs text-slate-400">Recargas automáticas</p>
                 </div>
-                <div class="text-sm text-center font-medium text-gray-400 mb-4">
-                    Tasa utilizada: <span id="displayExchangeRate" class="text-rate">--</span>
-                </div>
+            </div>
 
-                <button id="copyAllBtn" class="w-full py-3 px-4 rounded-lg bg-neon-cyan hover:bg-cyan-500 transition duration-150 text-base font-bold text-gray-900 shadow-neon-blue mb-6">
-                    📄 Copiar TODOS los Datos de Pago
+            <div class="text-center text-[11px] text-slate-400 flex items-center justify-center gap-2 mb-6">
+                <i class="fa-solid fa-circle-exclamation text-red-500"></i>
+                <span>Disponible para todos con saldo retirable • Mínimo $3.00 USD</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <button onclick="openModal()" class="bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-300 hover:to-green-400 text-dark-900 font-extrabold py-4 rounded-full shadow-[0_0_20px_rgba(132,204,22,0.4)] transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 text-lg">
+                    <i class="fa-solid fa-sack-dollar"></i> Recargar Saldo
+                </button>
+                <button class="bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-300 hover:to-amber-400 text-white font-extrabold py-4 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 text-lg">
+                    <i class="fa-solid fa-building-columns"></i> Retirar Fondos
                 </button>
             </div>
 
-            <h3 class="text-xl font-semibold mb-3 text-gray-300">💳 MÉTODOS DE PAGO DISPONIBLES:</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button onclick="document.getElementById('historySection').scrollIntoView({behavior: 'smooth'})" class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-3 rounded-full font-bold shadow-lg flex items-center justify-center gap-2 text-sm opacity-90 hover:opacity-100 transition-opacity">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Historial de Recargas
+                </button>
+                <button onclick="cerrarSesion()" class="bg-gradient-to-r from-red-500 to-rose-600 text-white py-3 rounded-full font-bold shadow-lg flex items-center justify-center gap-2 text-sm opacity-90 hover:opacity-100 transition-opacity">
+                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                </button>
+            </div>
+        </div>
+
+        <div id="historySection">
+            <div class="border-2 border-yellow-500/30 rounded-2xl p-4 text-center bg-black/20 mb-6 backdrop-blur-sm">
+                <h2 class="text-xl font-bold text-yellow-400 flex items-center justify-center gap-3">
+                   <i class="fa-solid fa-sack-dollar text-2xl"></i> Historial de Recargas
+                </h2>
+            </div>
             
-            <div id="countryMethods" class="space-y-5">
+            <div id="historyGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 </div>
 
-            <div class="mt-8 p-4 bg-yellow-900/40 rounded-lg border-l-4 border-neon-yellow">
-                <p class="font-bold text-neon-yellow">⚠️ IMPORTANTE:</p>
-                <ul id="importanteList" class="list-none space-y-1 mt-2 text-sm text-gray-300">
-                    </ul>
-                <p class="font-bold text-neon-green mt-4 text-sm">
-                    ✅ Una vez realizado el pago, será procesado automáticamente.
-                </p>
+            <div id="emptyState" class="hidden flex flex-col items-center justify-center py-16 text-slate-500">
+                <i class="fa-solid fa-receipt text-6xl mb-4 opacity-30"></i>
+                <p class="text-lg font-medium">No hay movimientos recientes</p>
+                <p class="text-sm opacity-70">Tus pedidos de recarga aparecerán aquí.</p>
             </div>
         </div>
 
     </div>
 
+    <div id="mainModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+        <div class="bg-dark-800 border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
+            <button onclick="closeModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white z-20 bg-dark-900/80 rounded-full p-2 w-8 h-8 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+
+            <div id="step1" class="step-active flex flex-col h-full">
+                <div class="p-4 border-b border-slate-700 bg-dark-900/50 shrink-0 z-10">
+                    <h2 class="text-lg font-bold text-white text-center">Seleccionar País</h2>
+                    <p class="text-slate-400 text-[10px] text-center mt-1">Desliza para ver más opciones 👇</p>
+                </div>
+                <div class="h-96 overflow-y-auto p-3 custom-scrollbar bg-dark-900/20 overscroll-contain">
+                    <div class="grid grid-cols-2 gap-2" id="countryGrid"></div>
+                </div>
+            </div>
+
+            <div id="step2" class="step-hidden flex flex-col h-full justify-center p-6 relative">
+                <button onclick="changeStep(1)" class="absolute top-4 left-4 text-slate-400 hover:text-brand-cyan text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors"><i class="fa-solid fa-arrow-left"></i> Volver</button>
+                <div class="w-full text-center mt-4">
+                    <div class="text-5xl mb-4 drop-shadow-lg" id="selectedFlag">🇺🇸</div>
+                    <h2 class="text-lg font-bold text-white mb-6">Monto a Recargar</h2>
+                    <div class="bg-dark-900 p-4 rounded-xl border border-slate-700 mb-6 shadow-inner">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">USD (Mínimo $3.00)</label>
+                        <div class="relative flex items-center justify-center">
+                            <span class="text-xl text-slate-500 font-bold mr-1">$</span>
+                            <input type="number" id="amountInput" min="3" step="0.01" class="w-32 bg-transparent border-b-2 border-slate-600 py-1 text-white text-2xl font-bold focus:border-brand-cyan focus:outline-none transition-all placeholder-slate-700 text-center" placeholder="0.00">
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-slate-700/50 flex justify-between items-center text-xs">
+                            <span class="text-slate-400">Total Local:</span>
+                            <span id="localAmountPreview" class="text-brand-yellow font-bold text-sm">--</span>
+                        </div>
+                    </div>
+                    <button onclick="createOrder()" id="btnGenerate" disabled class="w-full bg-brand-cyan hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-dark-900 font-bold py-3 rounded-xl transition-all shadow-lg shadow-cyan-500/20 text-sm">Continuar</button>
+                    <p id="amountError" class="text-red-400 text-[10px] mt-3 hidden bg-red-500/10 py-1 px-3 rounded-full inline-block border border-red-500/20">Mínimo $3.00 USD</p>
+                </div>
+            </div>
+
+            <div id="step3" class="step-hidden flex flex-col h-full overflow-hidden">
+                <div class="bg-brand-green/10 border-b border-brand-green/20 p-3 shrink-0 flex items-center justify-between">
+                    <div class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-brand-green"></i><span class="font-bold text-brand-green text-sm">Pedido Generado</span></div>
+                    <span id="ticketId" class="font-mono text-[10px] text-brand-green bg-brand-green/10 px-2 py-1 rounded">#0000</span>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                    <div class="text-center">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Debes transferir</p>
+                        <p id="finalLocalAmount" class="text-2xl font-extrabold text-white">--</p>
+                    </div>
+                    <button id="copyAllDetailsBtn" class="w-full py-2.5 bg-slate-800 border border-brand-cyan/30 text-brand-cyan font-bold rounded-lg flex justify-center items-center gap-2 hover:bg-slate-700 transition-all text-xs"><i class="fa-regular fa-copy"></i><span id="copyBtnText">COPIAR DATOS</span></button>
+                    <div class="border-t border-slate-700"></div>
+                    <div id="paymentMethodsList" class="space-y-2"></div>
+                </div>
+                <div class="p-3 border-t border-slate-700 bg-dark-900 shrink-0"><button onclick="closeModal()" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition text-xs">Cerrar Ventana</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="uploadModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-dark-800 border border-brand-purple/50 w-full max-w-sm rounded-2xl shadow-[0_0_30px_rgba(139,92,246,0.3)] p-6 relative">
+            <button onclick="document.getElementById('uploadModal').style.display='none'" class="absolute top-3 right-3 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            
+            <h2 class="text-xl font-bold text-brand-purple text-center mb-1">Subir Comprobante</h2>
+            <p class="text-xs text-slate-400 text-center mb-6" id="uploadOrderId">Pedido #---</p>
+            
+            <input type="file" id="fileInput" accept="image/*" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-purple file:text-white hover:file:bg-purple-600 mb-4 cursor-pointer bg-dark-900 rounded-lg border border-slate-700 p-2">
+            
+            <textarea id="messageInput" placeholder="Mensaje opcional..." class="w-full bg-dark-900 border border-slate-700 rounded-lg p-3 text-sm text-white mb-4 h-24 focus:outline-none focus:border-brand-purple resize-none"></textarea>
+            
+            <button onclick="window.sendComprobante()" id="btnSendUpload" class="w-full bg-brand-purple hover:bg-purple-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-purple-500/20">
+                Enviar Comprobante 🚀
+            </button>
+        </div>
+    </div>
+
     <script>
-        // --- PLANTILLA UNIVERSAL DE COPIA ---
-        // Combina el encabezado, el cuerpo (métodos) y el pie (importante) para generar el texto final.
-        const UNIVERSAL_COPY_TEMPLATE = (countryData, localAmount, templateBody) => {
-            // Se usa replace para quitar la bandera y el código de moneda del nombre que se muestra en el header de la plantilla.
-            const countryName = countryData.name.replace(/.*?\s/, ''); 
+    // ============================================
+    // 1. LÓGICA MODIFICADA: SIN RESTRICCIÓN DE LOGIN
+    // ============================================
+    
+    // Establecer un nombre de usuario por defecto
+    const disp = document.getElementById("userDisplay");
+    if(disp) disp.innerText = "Usuario";
 
-            // Plantilla unificada que utiliza la moneda y el monto calculados.
-            return `💰 *DATOS DE PAGO*
+    // Función para Cerrar Sesión (Ahora solo recarga la página)
+    function cerrarSesion() {
+        // Al no haber login obligatorio, el botón simplemente refresca la app
+        window.location.reload();
+    }
 
-🌍 *País:* ${countryName}
-💸 *Monto a pagar:* ${countryData.currency} ${localAmount}
 
-💳 *MÉTODOS DE PAGO DISPONIBLES:*
-
-${templateBody}
-
-⚠️ *IMPORTANTE:*
-• Envía exactamente ${countryData.currency} ${localAmount}
-• Guarda el comprobante de pago
-• Envía el comprobante para confirmar el pago
-
-✅ *Una vez realizado el pago, será procesado automáticamente.*`;
-        }
-
-        // --- DEFINICIÓN DE TASAS Y DATOS DE PAGO (INCLUYENDO VENEZUELA) ---
-        const EXCHANGE_RATES = {
-            ARG: {
-                name: "🇦🇷 Argentina", 
-                currency: "ARS",
-                rate: 52000, 
-                rateDisplay: "Dólar a 52000 ARS",
-                methods: [
-                    {
-                        name: "Uala",
-                        type: "TRANSFERENCIA 🏦",
-                        details: "CVU: 0000007900203350273548 | Alias: C.CORREA1315.UALA",
-                        info: "Transferencia UALA (Dólar a 52000)", 
-                        copyValue: "CVU: 0000007900203350273548 | Alias: C.CORREA1315.UALA"
-                    }
-                ],
-                templateBody: `🔵 *Uala* (🏦 TRANSFERENCIA)
-📋 CVU: 0000007900203350273548 | Alias: C.CORREA1315.UALA
-💡 Transferencia UALA (Dólar a 52000)`
-            },
-            BOL: {
-                name: "🇧🇴 Bolivia",
-                currency: "BOB",
-                rate: 16, 
-                rateDisplay: "Dólar a 16 Bs", 
-                methods: [
-                    {
-                        name: "Yape",
-                        type: "EFECTIVO 💵",
-                        details: "N° Cuenta: 62656932",
-                        info: "Banca Electrónica Yape (Dólar a 16 Bs)", 
-                        copyValue: "62656932"
-                    },
-                    {
-                        name: "Yape QR",
-                        type: "CÓDIGO QR 📱",
-                        details: "Código QR disponible en el link.",
-                        info: "Escanea el código QR de Yape (Dólar a 16 Bs)", 
-                        isQR: true,
-                        qrLink: "https://i.postimg.cc/YCg1rRGF/qrbolivia.jpg"
-                    },
-                    {
-                        name: "BCP",
-                        type: "TRANSFERENCIA 🔷",
-                        details: "N° Cuenta: 20152008832355",
-                        info: "Cuenta Ahorros BCP (Dólar a 16 Bs)", 
-                        copyValue: "20152008832355"
-                    }
-                ],
-                templateBody: `💜 *Yape* (💵 EFECTIVO)
-📋 N° Cuenta: 62656932
-💡 Banca Electrónica Yape (Dólar a 16 Bs)
-
-📱 *Yape QR* (💵 EFECTIVO)
-📋 Código QR disponible en el link.  
-https://i.postimg.cc/YCg1rRGF/qrbolivia.jpg
-💡 Escanea el código QR de Yape (Dólar a 16 Bs)
-
-🔷 *BCP* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 20152008832355
-💡 Cuenta Ahorros BCP (Dólar a 16 Bs)`
-            },
-            BRL: {
-                name: "🇧🇷 Brasil",
-                currency: "BRL",
-                rate: 5.2, 
-                rateDisplay: "Dólar a 5.2 BRL", 
-                methods: [
-                    {
-                        name: "PIX",
-                        type: "TRANSFERENCIA 🏦",
-                        details: "Chave PIX: 91991076791",
-                        info: "Transferência instantânea PIX",
-                        copyValue: "91991076791" 
-                    }
-                ],
-                templateBody: `🟢 *PIX* (🏦 TRANSFERENCIA)
-📋 Chave PIX: 91991076791
-💡 Transferência instantânea PIX`
-            },
-            CHL: {
-                name: "🇨🇱 Chile",
-                currency: "CLP",
-                rate: 950, 
-                rateDisplay: "Dólar a 950 CLP (Tasa referencial)",
-                methods: [
-                    {
-                        name: "Banco Estado (Caja Vecina)",
-                        type: "EFECTIVO 💵",
-                        details: "Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151",
-                        info: "CAJA VECINA - Depósito en efectivo",
-                        copyValue: "Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151"
-                    },
-                    {
-                        name: "Banco Estado (Transferencia)",
-                        type: "TRANSFERENCIA 🏦",
-                        details: "Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151",
-                        info: "TRANSFERENCIA BANCARIA",
-                        copyValue: "Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151"
-                    }
-                ],
-                templateBody: `🏪 *Banco Estado (Caja Vecina)* (💵 EFECTIVO)
-📋 Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151
-💡 CAJA VECINA - Depósito en efectivo
-
-🟢 *Banco Estado (Transferencia)* (🏦 TRANSFERENCIA)
-📋 Titular: XAVIER FUENZALIDA | RUT: 23.710.151-0 | CuentaRUT: 23710151
-💡 TRANSFERENCIA BANCARIA`
-            },
-            COL: {
-                name: "🇨🇴 Colombia",
-                currency: "COP",
-                rate: 4200, 
-                rateDisplay: "Dólar a 4200 COP (Tasa referencial)", 
-                methods: [
-                    {
-                        name: "Bancolombia",
-                        type: "TRANSFERENCIA 🏦",
-                        details: "N° Cuenta: 76900007797",
-                        info: "Transferencia Ahorros Bancolombia",
-                        copyValue: "N° Cuenta: 76900007797"
-                    },
-                    {
-                        name: "Nequi",
-                        type: "EFECTIVO 💵",
-                        details: "Nequi: 3214701288",
-                        info: "Envía dinero por Nequi",
-                        copyValue: "Nequi: 3016043120"
-                    },
-                    {
-                        name: "Nu Bank",
-                        type: "TRANSFERENCIA 🟣",
-                        details: "Llave Nu: @PMG3555",
-                        info: "Transferencia Nu Bank",
-                        copyValue: "Llave Nu: @PMG3555"
-                    }
-                ],
-                templateBody: `🟡 *Bancolombia* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 76900007797
-💡 Transferencia Ahorros Bancolombia
-
-🔵 *Nequi* (💵 EFECTIVO)
-📋 Nequi: 3016043120
-💡 Envía dinero por Nequi
-
-🟣 *Nu Bank* (🏦 TRANSFERENCIA)
-📋 Llave Nu: @PMG3555
-💡 Transferencia Nu Bank`
-            },
-            DOM: {
-                name: "🇩🇴 República Dominicana",
-                currency: "DOP",
-                rate: 68.00,
-                rateDisplay: "Dólar a 68 DOP",
-                methods: [
-                    {
-                        name: "Banreservas",
-                        type: "TRANSFERENCIA 🟦",
-                        details: "N° Cuenta: 9601546622",
-                        info: "Transferencia Cuenta Ahorro Banreservas",
-                        copyValue: "N° Cuenta: 9601546622"
-                    },
-                    {
-                        name: "Banco Popular",
-                        type: "TRANSFERENCIA 🔴",
-                        details: "N° Cuenta: 837147719",
-                        info: "Transferencia Cuenta Ahorro Popular",
-                        copyValue: "N° Cuenta: 837147719"
-                    },
-                    {
-                        name: "BHD León",
-                        type: "TRANSFERENCIA 🟨",
-                        details: "N° Cuenta: 34478720012",
-                        info: "Transferencia BHD León",
-                        copyValue: "N° Cuenta: 34478720012"
-                    },
-                    {
-                        name: "Qik",
-                        type: "EFECTIVO 🟢",
-                        details: "N° Cuenta: 1002173707",
-                        info: "Pago móvil Qik",
-                        copyValue: "N° Cuenta: 1002173707"
-                    }
-                ],
-                templateBody: `🟦 *Banreservas* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 9601546622
-💡 Transferencia Cuenta Ahorro Banreservas
-
-🔴 *Banco Popular* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 837147719
-💡 Transferencia Cuenta Ahorro Popular
-
-🟨 *BHD León* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 34478720012
-💡 Transferencia BHD León
-
-🟢 *Qik* (💵 EFECTIVO)
-📋 N° Cuenta: 1002173707
-💡 Pago móvil Qik`
-            },
-            ECU: {
-                name: "🇪🇨 Ecuador",
-                currency: "USD",
-                rate: 1, 
-                rateDisplay: "Tasa: 1.00 (Pago en USD)",
-                methods: [
-                    {
-                        name: "Banco Pichincha",
-                        type: "TRANSFERENCIA 🏦",
-                        details: "N° Cuenta: 2207195565",
-                        info: "Transferencia Cuenta Ahorro Pichincha",
-                        copyValue: "N° Cuenta: 2207195565"
-                    }
-                ],
-                templateBody: `🟨 *Banco Pichincha* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 2207195565
-💡 Transferencia Cuenta Ahorro Pichincha`
-            },
-            USA: {
-                name: "🇺🇸 Estados Unidos",
-                currency: "USD",
-                rate: 1, 
-                rateDisplay: "Tasa: 1.00 (Pago en USD)",
-                methods: [
-                    {
-                        name: "Zelle Tickets DAVID",
-                        type: "EFECTIVO 💵",
-                        details: "Número: +1 (754) 317-1482",
-                        info: "Banca Electrónica Zelle",
-                        copyValue: "+1 (754) 317-1482"
-                    }
-                ],
-                templateBody: `💎 *Zelle Tickets DAVID* (💵 EFECTIVO)
-📋 Número: +1 (754) 317-1482
-💡 Banca Electrónica Zelle`
-            },
-            GTM: {
-                name: "🇬🇹 Guatemala", 
-                currency: "GTQ",
-                rate: 7.8, 
-                rateDisplay: "Dólar a 7.8 GTQ", 
-                methods: [
-                    {
-                        name: "Banrural",
-                        type: "TRANSFERENCIA 🏦",
-                        details: "N° Cuenta: 4431164091",
-                        info: "Transferencia Banrural",
-                        copyValue: "N° Cuenta: 4431164091"
-                    }
-                ],
-                templateBody: `🟩 *Banrural* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 4431164091
-💡 Transferencia Banrural`
-            },
-            HND: {
-                name: "🇭🇳 Honduras", 
-                currency: "HNL",
-                rate: 25.00, 
-                rateDisplay: "Dólar a 25.00 HNL", 
-                methods: [
-                    {
-                        name: "Bampais",
-                        type: "TRANSFERENCIA 🏦",
-                        details: "N° Cuenta: 216400100524",
-                        info: "Transferencia Cuenta Ahorros Bampais",
-                        copyValue: "N° Cuenta: 216400100524"
-                    }
-                ],
-                templateBody: `🔵 *Bampais* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 216400100524
-💡 Transferencia Cuenta Ahorros Bampais`
-            },
-            MEX: {
-                name: "🇲🇽 México", 
-                currency: "MXN",
-                rate: 20.00, 
-                rateDisplay: "Dólar a 20.00 MXN", 
-                methods: [
-                    {
-                        name: "Albo",
-                        type: "TRANSFERENCIA 🏦",
-                        details: "N° Cuenta: 721180100042683432",
-                        info: "SOLO TRANSFERENCIAS (Dólar a 20MX)",
-                        copyValue: "N° Cuenta: 721180100042683432"
-                    },
-                    {
-                        name: "Nu México (OXXO)",
-                        type: "EFECTIVO 💵",
-                        details: "5101 2506 8691 9389",
-                        info: "SOLO DEPOSITOS OXXO (Dólar a 20MX)",
-                        copyValue: "5101 2506 8691 9389"
-                    }
-                ],
-                templateBody: `🏦 *Albo* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 721180100042683432
-💡 SOLO TRANSFERENCIAS (Dólar a 20MX)
-
-🏪 *Nu México (OXXO)* (💵 EFECTIVO)
-📋 5101 2506 8691 9389
-💡 SOLO DEPOSITOS OXXO (Dólar a 20MX)`
-            },
-            NIC: {
-                name: "🇳🇮 Nicaragua", 
-                currency: "NIO",
-                rate: 36.5, 
-                rateDisplay: "Dólar a 36.5 NIO", 
-                methods: [
-                    {
-                        name: "BAC Nicaragua",
-                        type: "TRANSFERENCIA 🏦",
-                        details: "N° Cuenta: 371674409 | IBAN: NI37BAMC00000000000371674409",
-                        info: "Transferencia Bancaria BAC (Tasa P2P Binance)",
-                        copyValue: "N° Cuenta: 371674409 | IBAN: NI37BAMC00000000000371674409"
-                    }
-                ],
-                templateBody: `🏦 *BAC Nicaragua* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 371674409 | IBAN: NI37BAMC00000000000371674409
-💡 Transferencia Bancaria BAC (Tasa P2P Binance)`
-            },
-            PAN: {
-                name: "🇵🇦 Panamá", 
-                currency: "USD",
-                rate: 1, 
-                rateDisplay: "Tasa: 1.00 (Pago en USD)", 
-                methods: [
-                    {
-                        name: "Punto Pago Wally",
-                        type: "EFECTIVO 💵",
-                        details: "N° Cuenta: +584128975265",
-                        info: "Banca Electrónica Punto Pago Wally",
-                        copyValue: "N° Cuenta: +584128975265"
-                    },
-                    {
-                        name: "Zinli",
-                        type: "EFECTIVO 💵",
-                        details: "N° Cuenta: chauran2001@gmail.com",
-                        info: "Banca Electrónica Zinli",
-                        copyValue: "N° Cuenta: chauran2001@gmail.com"
-                    }
-                ],
-                templateBody: `🟠 *Punto Pago Wally* (💵 EFECTIVO)
-📋 N° Cuenta: +584128975265
-💡 Banca Electrónica Punto Pago Wally
-
-🟣 *Zinli* (💵 EFECTIVO)
-📋 N° Cuenta: chauran2001@gmail.com
-💡 Banca Electrónica Zinli`
-            },
-            PRY: {
-                name: "🇵🇾 Paraguay",
-                currency: "PYG",
-                rate: 7300,
-                rateDisplay: "Dólar a 7300 PYG",
-                methods: [
-                    {
-                        name: "Banco Itau",
-                        type: "TRANSFERENCIA 🏦",
-                        details: "N° Cuenta: 300406285 | Titular: DIEGO ARMANDO LEIVA ROA",
-                        info: "Transferencia Bancaria Itau",
-                        copyValue: "N° Cuenta: 300406285 | Titular: DIEGO ARMANDO LEIVA ROA"
-                    },
-                    {
-                        name: "Billetera Personal",
-                        type: "EFECTIVO 💵",
-                        details: "Billetera Personal 0993363424",
-                        info: "Transferencia a Billetera Personal",
-                        copyValue: "Billetera Personal 0993363424"
-                    }
-                ],
-                templateBody: `🏦 *Banco Itau* (🏦 TRANSFERENCIA)
-📋 N° Cuenta: 300406285 | Titular: DIEGO ARMANDO LEIVA ROA
-💡 Transferencia Bancaria Itau
-
-💳 *Billetera Personal* (💵 EFECTIVO)
-📋 Billetera Personal 0993363424
-💡 Transferencia a Billetera Personal`
-            },
-            PER: {
-                name: "🇵🇪 Perú",
-                currency: "PEN",
-                rate: 3.8,
-                rateDisplay: "Dólar a 3.8 PEN",
-                methods: [
-                    {
-                        name: "Yape",
-                        type: "EFECTIVO 💵",
-                        details: "N° Cuenta: 954302258",
-                        info: "Banca Electrónica Yape",
-                        copyValue: "N° Cuenta: 954302258"
-                    },
-                    {
-                        name: "Plin",
-                        type: "EFECTIVO 💵",
-                        details: "N° Cuenta: 954302258",
-                        info: "Banca Electrónica Plin",
-                        copyValue: "N° Cuenta: 954302258"
-                    }
-                ],
-                templateBody: `🟣 *Yape* (💵 EFECTIVO)
-📋 N° Cuenta: 954302258
-💡 Banca Electrónica Yape
-
-🔵 *Plin* (💵 EFECTIVO)
-📋 N° Cuenta: 954302258
-💡 Banca Electrónica Plin`
-            },
-            // --- PAÍS AÑADIDO: VENEZUELA (VES) ---
-            VEN: {
-                name: "🇻🇪 Venezuela",
-                currency: "VES",
-                rate: 279,
-                rateDisplay: "Dólar a 279 VES",
-                methods: [
-                    {
-                        name: "Pago Móvil",
-                        type: "EFECTIVO 🟡",
-                        details: "Pago móvil: 01020412897526531303430",
-                        info: "Pago móvil interbancario (Dólar a 279 Bs)",
-                        copyValue: "Pago móvil: 01020412897526531303430"
-                    }
-                ],
-                templateBody: `🟡 *Pago Móvil* (💵 EFECTIVO)
-📋 Pago móvil: 01020412897526531303430
-💡 Pago móvil interbancario (Dólar a 279 Bs)`
-            }
+        // ============================================
+        // 2. LÓGICA DE BILLETERA (PAGOS)
+        // ============================================
+        const EXCHANGE_DATA = {
+            ARG: { name: "Argentina", flag: "🇦🇷", currency: "ARS", locale: "es-AR", decimals: 0, rate: 150000, methods: [{name: "Uala", type: "TRANSFERENCIA", details: "CVU: 0000007900203350273548 | Alias: C.CORREA1315.UALA"}] },
+            BOL: { name: "Bolivia", flag: "🇧🇴", currency: "BOB", locale: "es-BO", decimals: 2, rate: 12, methods: [{name: "Yape", type: "APP", details: "N° Cuenta: 62656932"}, {name: "Yape QR", type: "QR", details: "Link: https://i.postimg.cc/YCg1rRGF/qrbolivia.jpg", isQR: true, qrLink: "https://i.postimg.cc/YCg1rRGF/qrbolivia.jpg"}, {name: "BCP", type: "BANCO", details: "N° Cuenta: 20152008832355"}] },
+            BRL: { name: "Brasil", flag: "🇧🇷", currency: "BRL", locale: "pt-BR", decimals: 2, rate: 5.20, methods: [{name: "PIX", type: "PIX", details: "Chave PIX: 91991076791"}] },
+            CHL: { name: "Chile", flag: "🇨🇱", currency: "CLP", locale: "es-CL", decimals: 0, rate: 950, methods: [{name: "Banco Estado", type: "CAJA VECINA", details: "RUT: 23.710.151-0 | CuentaRUT: 23710151"}, {name: "Banco Estado", type: "TRANSF.", details: "RUT: 23.710.151-0 | CuentaRUT: 23710151"}] },
+            COL: { name: "Colombia", flag: "🇨🇴", currency: "COP", locale: "es-CO", decimals: 0, rate: 4200, methods: [{name: "Bancolombia", type: "BANCO", details: "Cta Ahorros: 76900007797"}, {name: "Nequi", type: "APP", details: "Cel: 3016043120"}, {name: "Nu Bank", type: "BANCO", details: "Llave: @PMG3555"}] },
+            DOM: { name: "Rep. Dominicana", flag: "🇩🇴", currency: "DOP", locale: "es-DO", decimals: 2, rate: 68.00, methods: [{name: "Banreservas", type: "BANCO", details: "Cta: 9601546622"}, {name: "Popular", type: "BANCO", details: "Cta: 837147719"}, {name: "BHD León", type: "BANCO", details: "Cta: 34478720012"}, {name: "Qik", type: "APP", details: "Cta: 1002173707"}] },
+            ECU: { name: "Ecuador", flag: "🇪🇨", currency: "USD", locale: "en-US", decimals: 2, rate: 1, methods: [{name: "Pichincha", type: "BANCO", details: "Cta: 2207195565"}] },
+            USA: { name: "Estados Unidos", flag: "🇺🇸", currency: "USD", locale: "en-US", decimals: 2, rate: 1, methods: [{name: "Zelle", type: "ZELLE", details: "+1 (754) 317-1482"}] },
+            GTM: { name: "Guatemala", flag: "🇬🇹", currency: "GTQ", locale: "es-GT", decimals: 2, rate: 7.8, methods: [{name: "Banrural", type: "BANCO", details: "Cta: 4431164091"}] },
+            HND: { name: "Honduras", flag: "🇭🇳", currency: "HNL", locale: "es-HN", decimals: 2, rate: 25.00, methods: [{name: "Bampais", type: "BANCO", details: "Cta: 216400100524"}] },
+            MEX: { name: "México", flag: "🇲🇽", currency: "MXN", locale: "es-MX", decimals: 2, rate: 20.00, methods: [{name: "Albo", type: "SPEI", details: "Cta: 721180100042683432"}, {name: "Nu (OXXO)", type: "DEPÓSITO", details: "Tarjeta: 5101 2506 8691 9389"}] },
+            NIC: { name: "Nicaragua", flag: "🇳🇮", currency: "NIO", locale: "es-NI", decimals: 0, rate: 36.5, methods: [{name: "BAC", type: "BANCO", details: "Cta: 371674409"}] },
+            PAN: { name: "Panamá", flag: "🇵🇦", currency: "USD", locale: "en-US", decimals: 2, rate: 1, methods: [{name: "Punto Pago", type: "APP", details: "Cta: +584128975265"}, {name: "Zinli", type: "APP", details: "chauran2001@gmail.com"}] },
+            PRY: { name: "Paraguay", flag: "🇵🇾", currency: "PYG", locale: "es-PY", decimals: 0, rate: 7300, methods: [{name: "Itau", type: "BANCO", details: "Cta: 300406285"}, {name: "Personal", type: "APP", details: "0993363424"}] },
+            PER: { name: "Perú", flag: "🇵🇪", currency: "PEN", locale: "es-PE", decimals: 2, rate: 3.8, methods: [{name: "Yape/Plin", type: "APP", details: "Cel: 954302258"}] },
+            VEN: { name: "Venezuela", flag: "🇻🇪", currency: "VES", locale: "es-VE", decimals: 2, rate: 350, methods: [{name: "Pago Móvil", type: "MÓVIL", details: "0102 - 04128975265 - 31303430"}] }
         };
 
-        // Referencias a elementos del DOM
-        const countrySelect = document.getElementById('countrySelect');
-        const usdAmountInput = document.getElementById('usdAmountInput');
-        const rechargeBtn = document.getElementById('rechargeBtn');
-        const errorMsg = document.getElementById('errorMsg');
-        const paymentMethodsContainer = document.getElementById('paymentMethodsContainer');
-        const displayCountry = document.getElementById('displayCountry');
-        const displayLocalAmount = document.getElementById('displayLocalAmount');
-        const displayExchangeRate = document.getElementById('displayExchangeRate'); 
-        const countryMethods = document.getElementById('countryMethods');
-        const importanteList = document.getElementById('importanteList');
-        const copyAllBtn = document.getElementById('copyAllBtn'); 
+        let state = { step: 1, selectedCountry: null, amountUSD: 0, amountLocalRaw: 0 };
+        window.currentOrderId = null; 
+        window.currentOrderAmount = null; // Necesario para el script de subida
 
-        // Función de utilidad para copiar al portapapeles
-        function copyToClipboard(textToCopy, element, originalText) {
-            const cleanedText = textToCopy.trim();
-            
-            const tempInput = document.createElement('textarea');
-            tempInput.value = cleanedText;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            
-            try {
-                // Función de copia antigua compatible con iframes
-                document.execCommand('copy');
-                element.textContent = '¡Copiado! ✅';
-                // Cambio visual de confirmación
-                element.classList.remove('bg-neon-cyan', 'hover:bg-cyan-500');
-                element.classList.add('bg-neon-green', 'shadow-neon-green');
-                
-                setTimeout(() => {
-                    element.textContent = originalText;
-                    // Retorno a estilos originales
-                    element.classList.remove('bg-neon-green', 'shadow-neon-green');
-                    element.classList.add('bg-neon-cyan', 'hover:bg-cyan-500');
-                }, 2000);
-            } catch (err) {
-                console.error('Error al copiar: ', err);
-                element.textContent = 'Error al copiar';
-            }
-            document.body.removeChild(tempInput);
-        }
-
-        // Función principal para mostrar los métodos de pago
-        function showPaymentMethods() {
-            const selectedCountryCode = countrySelect.value;
-            let usdAmount = parseFloat(usdAmountInput.value);
-            
-            // Validar monto mínimo (3 USD)
-            if (isNaN(usdAmount) || usdAmount < 3) {
-                errorMsg.classList.remove('hidden');
-                paymentMethodsContainer.classList.add('hidden');
-                return;
-            }
-            errorMsg.classList.add('hidden');
-
-            const countryData = EXCHANGE_RATES[selectedCountryCode];
-            
-            // Cálculo del monto en moneda local basado en la tasa
-            let rawLocalAmount = usdAmount * countryData.rate;
-            let localAmount;
-
-            // Formateo del monto local: COP, HND, NIO, PRY y VEN se redondean a 0 decimales. Otros a 2.
-            if (selectedCountryCode === 'COL' || selectedCountryCode === 'HND' || selectedCountryCode === 'NIC' || selectedCountryCode === 'PRY' || selectedCountryCode === 'VEN') {
-                 localAmount = rawLocalAmount.toFixed(0);
-            } else {
-                 localAmount = rawLocalAmount.toFixed(2);
-            }
-            
-            // Actualizar encabezados y mostrar la tasa de cambio
-            displayCountry.textContent = countryData.name;
-            displayLocalAmount.textContent = `${countryData.currency} ${localAmount}`;
-            displayExchangeRate.textContent = countryData.rateDisplay; 
-            paymentMethodsContainer.classList.remove('hidden');
-
-            // 1. GENERAR EL TEXTO COMPLETO A COPIAR usando la plantilla universal
-            const allMethodsText = UNIVERSAL_COPY_TEMPLATE(countryData, localAmount, countryData.templateBody);
-            
-            // Asignar el texto al botón de copiar todo
-            copyAllBtn.setAttribute('data-copy-value', allMethodsText);
-            copyAllBtn.textContent = '📄 Copiar TODOS los Datos de Pago';
-            copyAllBtn.style.display = 'block';
-
-            // 2. Renderizar Métodos de Pago
-            countryMethods.innerHTML = ''; // Limpiar métodos anteriores
-            countryData.methods.forEach(method => {
-                const methodDiv = document.createElement('div');
-                // SE AGREGA EL RESTO DE LA ESTRUCTURA DEL MÉTODO DE PAGO QUE FALTABA
-                methodDiv.classList.add('payment-detail', 'flex', 'flex-col', 'sm:flex-row', 'justify-between', 'items-start', 'sm:items-center', 'space-y-2', 'sm:space-y-0');
-                
-                // Contenido principal del método
-                const contentHtml = `
-                    <div>
-                        <div class="text-lg font-bold text-neon-cyan">${method.name} <span class="text-sm font-normal text-gray-400">(${method.type})</span></div>
-                        <div class="text-sm text-gray-300 font-mono break-all mt-1">${method.details}</div>
-                        <div class="text-xs text-neon-pink mt-1">${method.info}</div>
-                        ${method.isQR ? `<a href="${method.qrLink}" target="_blank" class="text-xs text-neon-green hover:underline block mt-1 font-semibold">Ver Código QR 📱</a>` : ''}
-                    </div>
-                    <button class="copy-btn py-2 px-3 rounded-lg bg-neon-cyan hover:bg-cyan-500 transition duration-150 text-sm font-bold text-gray-900 flex-shrink-0" 
-                            data-copy-value="${method.copyValue}">
-                        📋 Copiar Datos
-                    </button>
-                `;
-                
-                methodDiv.innerHTML = contentHtml;
-                countryMethods.appendChild(methodDiv);
-            });
-            // FIN DE LA ESTRUCTURA DEL MÉTODO DE PAGO
-            
-            // 3. Renderizar la sección IMPORTANTE
-            importanteList.innerHTML = '';
-            
-            // Puntos fijos de importancia
-            const importancePoints = [
-                `Asegúrate de enviar exactamente **${countryData.currency} ${localAmount}** para que tu recarga se acredite correctamente.`,
-                'Guarda el comprobante de pago hasta que tu saldo se vea reflejado en tu cuenta.',
-                'En caso de cualquier problema, contacta a soporte enviando tu comprobante de pago.'
-            ];
-
-            importancePoints.forEach(pointText => {
-                const li = document.createElement('li');
-                li.innerHTML = `• ${pointText}`;
-                importanteList.appendChild(li);
-            });
-
-            // 4. Re-adjuntar Event Listeners para los nuevos botones de copiar
-            document.querySelectorAll('.copy-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const valueToCopy = e.currentTarget.getAttribute('data-copy-value');
-                    copyToClipboard(valueToCopy, e.currentTarget, '📋 Copiar Datos');
-                });
-            });
-
-        }
-
-        // Función para validar la entrada y habilitar/deshabilitar el botón
-        function validateInput() {
-            const usdAmount = parseFloat(usdAmountInput.value);
-            const countrySelected = countrySelect.value !== "";
-            
-            const isValid = countrySelected && !isNaN(usdAmount) && usdAmount >= 3;
-            
-            rechargeBtn.disabled = !isValid;
-            
-            if (isValid) {
-                errorMsg.classList.add('hidden');
-            } else if (!isNaN(usdAmount) && usdAmount < 3) {
-                 errorMsg.classList.remove('hidden');
-            } else {
-                 errorMsg.classList.add('hidden');
-            }
-            
-            // Ocultar métodos de pago si se invalida la selección
-            if (!isValid) {
-                 paymentMethodsContainer.classList.add('hidden');
-            }
-        }
-
-        // --- EVENT LISTENERS ---
-        
-        // 1. Evento para el botón principal
-        rechargeBtn.addEventListener('click', showPaymentMethods);
-        
-        // 2. Eventos para la validación de país y monto
-        countrySelect.addEventListener('change', validateInput);
-        usdAmountInput.addEventListener('input', validateInput);
-        
-        // 3. Evento para el botón de copiar todo
-        copyAllBtn.addEventListener('click', (e) => {
-            const valueToCopy = e.currentTarget.getAttribute('data-copy-value');
-            copyToClipboard(valueToCopy, e.currentTarget, '📄 Copiar TODOS los Datos de Pago');
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHistory();
+            renderCountryGrid();
         });
 
-        // Inicializar el estado del botón al cargar la página
-        validateInput();
+        function formatCurrency(amount, countryCode) {
+            const country = EXCHANGE_DATA[countryCode];
+            return new Intl.NumberFormat(country.locale, {
+                style: 'currency',
+                currency: country.currency,
+                minimumFractionDigits: country.decimals,
+                maximumFractionDigits: country.decimals
+            }).format(amount);
+        }
+
+        function getOrders() { return JSON.parse(localStorage.getItem('walletOrders')) || []; }
+        function saveOrder(order) {
+            const orders = getOrders();
+            orders.unshift(order);
+            localStorage.setItem('walletOrders', JSON.stringify(orders));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const orders = getOrders();
+            const grid = document.getElementById('historyGrid');
+            grid.innerHTML = '';
+            
+            if (orders.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('emptyState').classList.add('hidden');
+
+            orders.forEach(order => {
+                const card = document.createElement('div');
+                card.className = "bg-dark-800 border border-slate-700 p-5 rounded-2xl hover:border-brand-cyan transition-all duration-300 shadow-lg relative group overflow-hidden";
+                
+                card.innerHTML = `
+                    <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+                        <span class="text-6xl grayscale">${order.flag}</span>
+                    </div>
+
+                    <div class="flex justify-between items-start mb-4 relative z-10">
+                        <div>
+                            <span class="text-[10px] text-slate-500 font-mono bg-dark-900 px-2 py-1 rounded border border-slate-700">#${order.id}</span>
+                            <div class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                                <i class="fa-regular fa-calendar"></i> ${order.date}
+                            </div>
+                        </div>
+                        <span class="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-[10px] uppercase px-2 py-1 rounded-full font-bold tracking-wider">
+                            Pendiente
+                        </span>
+                    </div>
+
+                    <div class="mb-4 relative z-10">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-2xl">${order.flag}</span>
+                            <span class="font-bold text-white text-sm">${order.countryName}</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-2xl font-extrabold text-white tracking-tight">${order.amountLocalFormatted}</span>
+                            <span class="text-xs text-slate-500 font-bold">$${parseFloat(order.amountUSD).toFixed(2)} USD</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 relative z-10">
+                        <button onclick="viewOrderDetails('${order.id}')" class="flex-1 bg-slate-700 hover:bg-brand-cyan hover:text-dark-900 text-white py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-eye"></i> Ver
+                        </button>
+                        <button onclick="openUploadModal('${order.id}')" class="flex-1 bg-brand-purple hover:bg-purple-600 text-white py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1 shadow-lg shadow-purple-500/20">
+                            <i class="fa-solid fa-upload"></i> Subir
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        window.openUploadModal = function(orderId) {
+            window.currentOrderId = orderId; 
+            
+            // 1. OBTENER EL MONTO DE LA ORDEN DEL LOCALSTORAGE
+            const orders = JSON.parse(localStorage.getItem('walletOrders')) || [];
+            const order = orders.find(o => o.id == orderId);
+
+            if (order) {
+                // Guardar el monto solicitado y el ID en variables globales
+                window.currentOrderAmount = `$${parseFloat(order.amountUSD).toFixed(2)} USD`; 
+                document.getElementById('uploadOrderId').textContent = `Pedido #${orderId} - Monto: ${window.currentOrderAmount}`;
+            } else {
+                 window.currentOrderAmount = 'N/A';
+                 document.getElementById('uploadOrderId').textContent = `Pedido #${orderId}`;
+            }
+
+            document.getElementById('uploadModal').style.display = 'flex';
+        }
+
+        function openModal() { document.getElementById('mainModal').classList.remove('hidden'); changeStep(1); }
+        function closeModal() { document.getElementById('mainModal').classList.add('hidden'); }
+        function changeStep(n) {
+            state.step = n;
+            [1,2,3].forEach(i => {
+                const el = document.getElementById(`step${i}`);
+                if(i===n){el.classList.remove('step-hidden');el.classList.add('step-active')}
+                else{el.classList.add('step-hidden');el.classList.remove('step-active')}
+            });
+            if(n===1){document.getElementById('amountInput').value='';document.getElementById('btnGenerate').disabled=true;document.getElementById('localAmountPreview').textContent='--';}
+        }
+        function renderCountryGrid() {
+            const grid = document.getElementById('countryGrid'); grid.innerHTML = '';
+            Object.keys(EXCHANGE_DATA).forEach(code => {
+                const c = EXCHANGE_DATA[code];
+                const btn = document.createElement('button');
+                btn.className = "bg-dark-700 hover:bg-dark-600 border border-slate-600 hover:border-brand-cyan p-2.5 rounded-lg flex items-center gap-3 transition-all group text-left";
+                btn.onclick = () => { state.selectedCountry = code; document.getElementById('selectedFlag').textContent = c.flag; changeStep(2); };
+                btn.innerHTML = `<span class="text-2xl shrink-0 group-hover:scale-110 transition-transform">${c.flag}</span><div class="overflow-hidden"><span class="text-[11px] font-bold text-slate-200 group-hover:text-white uppercase block truncate">${c.name}</span><span class="text-[9px] text-slate-500 font-mono">${c.currency}</span></div>`;
+                grid.appendChild(btn);
+            });
+        }
+        document.getElementById('amountInput').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            const btn = document.getElementById('btnGenerate');
+            if(!isNaN(val) && val >= 3) {
+                btn.disabled = false; document.getElementById('amountError').classList.add('hidden');
+                state.amountUSD = val;
+                state.amountLocalRaw = val * EXCHANGE_DATA[state.selectedCountry].rate;
+                document.getElementById('localAmountPreview').textContent = formatCurrency(state.amountLocalRaw, state.selectedCountry);
+            } else {
+                btn.disabled = true; document.getElementById('localAmountPreview').textContent = '--';
+                if(val>0) document.getElementById('amountError').classList.remove('hidden');
+            }
+        });
+        function createOrder() {
+            const id = Math.floor(100000 + Math.random() * 900000);
+            const fmt = formatCurrency(state.amountLocalRaw, state.selectedCountry);
+            const d = EXCHANGE_DATA[state.selectedCountry];
+            saveOrder({
+                id: id,
+                date: new Date().toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit'}) + ' ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+                countryCode: state.selectedCountry, countryName: d.name, flag: d.flag,
+                amountUSD: state.amountUSD, amountLocalRaw: state.amountLocalRaw, amountLocalFormatted: fmt, currency: d.currency
+            });
+            renderPaymentDetails({id:id, countryCode:state.selectedCountry, amountLocalFormatted:fmt});
+            changeStep(3);
+        }
+        function renderPaymentDetails(order) {
+            const d = EXCHANGE_DATA[order.countryCode];
+            document.getElementById('ticketId').textContent = `#${order.id}`;
+            document.getElementById('finalLocalAmount').textContent = order.amountLocalFormatted;
+            const list = document.getElementById('paymentMethodsList'); list.innerHTML = '';
+            let txt = `💰 *PEDIDO #${order.id}* | ${d.flag} ${d.name}\n💸 *TOTAL:* ${order.amountLocalFormatted}\n\n💳 *DATOS:*`;
+            d.methods.forEach(m => {
+                txt += `\n\n🔹 ${m.name}\n${m.details}`;
+                const div = document.createElement('div');
+                div.className = "bg-dark-900 border border-slate-700 p-2.5 rounded-lg flex justify-between items-center";
+                div.innerHTML = `<div class="overflow-hidden mr-2"><div class="font-bold text-white text-[11px]">${m.name} <span class="text-[9px] bg-slate-700 text-slate-300 px-1 py-0.5 rounded uppercase">${m.type}</span></div><div class="text-[10px] text-brand-cyan font-mono mt-0.5 break-all">${m.details}</div></div><button onclick="copyToClipboard('${m.details}', this)" class="shrink-0 w-7 h-7 rounded bg-dark-800 text-slate-400 hover:text-white flex items-center justify-center"><i class="fa-regular fa-copy text-[10px]"></i></button>`;
+                list.appendChild(div);
+            });
+            txt += `\n\n⚠️ ID: ${order.id}`;
+            const btn = document.getElementById('copyAllDetailsBtn'); const nBtn = btn.cloneNode(true); btn.parentNode.replaceChild(nBtn, btn);
+            nBtn.addEventListener('click', () => copyToClipboard(txt, nBtn, true));
+        }
+        function viewOrderDetails(id) {
+            const o = getOrders().find(x => x.id == id);
+            if(o) { openModal(); renderPaymentDetails(o); changeStep(3); }
+        }
+        function copyToClipboard(text, btnElement, isMainBtn=false) {
+            const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+            if(isMainBtn) {
+                const og = document.getElementById('copyBtnText').textContent; const ic = btnElement.querySelector('i');
+                btnElement.classList.add('bg-brand-green', 'text-dark-900'); document.getElementById('copyBtnText').textContent = "¡COPIADO!"; ic.className = "fa-solid fa-check";
+                setTimeout(() => { btnElement.classList.remove('bg-brand-green', 'text-dark-900'); document.getElementById('copyBtnText').textContent = og; ic.className = "fa-regular fa-copy"; }, 2000);
+            } else {
+                const ic = btnElement.querySelector('i'); ic.className = "fa-solid fa-check text-brand-green"; setTimeout(() => ic.className = "fa-regular fa-copy text-[10px]", 2000);
+            }
+        }
     </script>
+    
+    <script type="module" src="upload_logic.js"></script>
 </body>
 </html>
